@@ -1,0 +1,69 @@
+{
+  "name": "yunxia",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "clean": "run-s clean:build clean:caches",
+    "clean:build": "pnpm --filter @yunxia/* clean",
+    "clean:caches": " rimraf .turbo/cache **/*/.turbo",
+    "clean:deps": "rimraf node_modules **/*/node_modules",
+    "clean:all": "run-s clean:build clean:caches clean:deps",
+    "lint": "eslint",
+    "lint:staged": "lint-staged",
+    "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"(packages|apps)/**/*.@(html|js|cjs|mjs|ts|tsx|css|scss|md)\"",
+    "typecheck": "turbo typecheck",
+    "commit": "git-cz",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.6.5",
+  "devDependencies": {
+    "@eslint/js": "9.32.0",
+    "eslint": "9.32.0",
+    "eslint-plugin-prettier": "5.5.3",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "0.4.20",
+    "eslint-plugin-simple-import-sort": "12.1.1",
+    "typescript-eslint": "8.38.0",
+    "prettier": "3.6.2",
+    "lint-staged": "16.1.2",
+    "husky": "9.1.7",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "commitizen": "4.3.1",
+    "cspell": "9.2.0",
+    "cz-git": "1.12.0",
+    "rimraf": "6.0.1",
+    "tsup": "8.5.0",
+    "turbo": "2.5.5",
+    "npm-run-all2": "8.0.4",
+    "globals": "16.3.0",
+    "fast-glob": "3.3.3"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-git"
+    }
+  },
+  "lint-staged": {
+    "*.{md,json}": [
+      "prettier --cache --write --no-error-on-unmatched-pattern"
+    ],
+    "*.{css,less}": [
+      "prettier --cache --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --cache --write"
+    ],
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --cache --parser=typescript --write"
+    ]
+  }
+}
