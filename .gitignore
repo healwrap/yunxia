@@ -38,3 +38,5 @@ dist-ssr
 .devcontainer/kafka_data
 
 *.sql
+
+doc

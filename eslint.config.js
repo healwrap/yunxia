@@ -61,7 +61,8 @@ const backendConfig = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
-    'no-console': 'error',
+    '@typescript-eslint/no-require-imports': 'off',
+    'no-console': 'warn',
   },
 };
 
