@@ -6,7 +6,8 @@
 
 - 前端技术栈React、TailwindCSS、antd、
 - 与文件分片上传相关的技术栈：文件分片、hash计算、WebWorker多线程、并发控制
-- 后端技术栈：koa、JWT 登录、mysql、redis、minio
+- 后端技术栈：koa、mysql、redis、minio
+- 登录相关：clerk
 
 功能方面，本项目涵盖网盘系统基本功能
 
