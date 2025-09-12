@@ -1,10 +1,7 @@
 import { createElement, lazy } from 'react';
-import {
-  createBrowserRouter,
-  Navigate,
-  // Navigate
-} from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -12,6 +9,7 @@ export default createBrowserRouter([
   {
     path: '/',
     element: createElement(lazy(() => import('@/layouts/BasicLayout.tsx'))),
+    errorElement: createElement(ErrorBoundary),
     children: [
       // 跳转示例
       // {
@@ -22,6 +20,10 @@ export default createBrowserRouter([
         path: '/',
         element: createElement(lazy(() => import('@/pages/home/index.tsx'))),
       },
+      {
+        path: 'test',
+        element: createElement(lazy(() => import('@/pages/home/api-test.tsx'))),
+      },
     ],
   },
   {
@@ -31,6 +33,7 @@ export default createBrowserRouter([
         {createElement(lazy(() => import('@/layouts/BenchLayout.tsx')))}
       </ProtectedRoute>
     ),
+    errorElement: createElement(ErrorBoundary),
     children: [
       {
         index: true,
@@ -49,6 +52,7 @@ export default createBrowserRouter([
   {
     path: '/user',
     element: createElement(lazy(() => import('@/layouts/UserLayout.tsx'))),
+    errorElement: createElement(ErrorBoundary),
     children: [
       {
         path: 'login',
@@ -63,5 +67,10 @@ export default createBrowserRouter([
         element: createElement(lazy(() => import('@/pages/user/register/index.tsx'))),
       },
     ],
+  },
+  // 添加通配符路由，捕获所有未匹配的路径
+  {
+    path: '*',
+    element: createElement(ErrorBoundary),
   },
 ]);

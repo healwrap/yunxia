@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@yunxia/hash-wasm": "workspace:^*",
     "@ant-design/icons": "^6.0.1",
     "@clerk/clerk-react": "^5.46.2",
     "@react-three/fiber": "^9.3.0",

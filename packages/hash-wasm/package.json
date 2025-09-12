@@ -18,7 +18,7 @@
     "clean": "rimraf build",
     "asbuild": "asc assembly/index.ts --target release",
     "build": "npm run clean && npm run asbuild",
-    "dev": "nodemon --watch assembly/ --ext ts --exec \"npm run build\"",
+    "dev-temp": "nodemon --watch assembly/ --ext ts --exec \"npm run build\"",
     "test": "node tests",
     "start": "npx serve ."
   },
