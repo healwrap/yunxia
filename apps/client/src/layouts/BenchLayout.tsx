@@ -4,6 +4,7 @@ import { Button, Drawer, Layout, Menu, theme } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import StorageInfoPopover from '@/components/FileManagement/StorageInfoPopover';
 import UploadStatusButton from '@/components/Upload/UploadStatusButton';
 import { getMenuItems, getSelectedKeys } from '@/lib/menu';
 import { withAuth } from '@/lib/withAuth';
@@ -152,6 +153,7 @@ function BenchLayout() {
             className="text-base !w-10 !h-10 ml-6 hover:bg-gray-100"
           />
           <div className="mr-4 flex items-center space-x-3">
+            <StorageInfoPopover />
             <UploadStatusButton />
             <UserButton showName />
           </div>

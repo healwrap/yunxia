@@ -1,23 +1,38 @@
 import { CloudUploadOutlined } from '@ant-design/icons';
 import { Button, message } from 'antd';
 import type { RcFile } from 'antd/es/upload';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useUploadStore } from '../../store/uploadStore';
 import { calculateFileHash } from '../../utils/fileUpload';
 
 interface FileUploaderProps {
   className?: string;
+  parentId?: string; // 添加父文件夹ID属性
+  onUploadSuccess?: () => void; // 添加上传成功回调
 }
 
 /**
  * 文件上传组件，处理文件选择和预处理
  */
-const FileUploader: React.FC<FileUploaderProps> = ({ className }) => {
+const FileUploader: React.FC<FileUploaderProps> = ({ className, parentId, onUploadSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const addUploadTask = useUploadStore(state => state.addTask);
   const processQueue = useUploadStore(state => state.processQueue);
+  const addUploadCompleteCallback = useUploadStore(state => state.addUploadCompleteCallback);
+  const removeUploadCompleteCallback = useUploadStore(state => state.removeUploadCompleteCallback);
+
+  // 注册上传完成回调
+  useEffect(() => {
+    if (onUploadSuccess) {
+      addUploadCompleteCallback(onUploadSuccess);
+      return () => {
+        removeUploadCompleteCallback(onUploadSuccess);
+      };
+    }
+    return undefined;
+  }, [onUploadSuccess, addUploadCompleteCallback, removeUploadCompleteCallback]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -41,6 +56,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ className }) => {
         chunkHashes,
         chunks,
         totalChunks: chunks.length,
+        parentId, // 传递父文件夹ID
       });
 
       // 自动处理上传队列

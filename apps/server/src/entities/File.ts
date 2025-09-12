@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { FILE_STATUS } from '../constants/files';
+
 @Entity('files')
 export class File {
   @PrimaryGeneratedColumn('uuid')
@@ -32,7 +34,7 @@ export class File {
   @Column({ type: 'varchar', length: 255 })
   user_id: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'active' })
+  @Column({ type: 'varchar', length: 20, default: FILE_STATUS.ACTIVE })
   status: string;
 
   @Column({ type: 'varchar', length: 64, nullable: true })

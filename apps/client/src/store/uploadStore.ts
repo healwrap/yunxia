@@ -17,12 +17,14 @@ export interface UploadTask {
   fileId?: string;
   error?: Error;
   createdAt: number;
+  parentId?: string; // 添加父文件夹ID
 }
 
 interface UploadStore {
   tasks: UploadTask[];
   maxConcurrentUploads: number;
   isUploading: boolean;
+  uploadCompleteCallbacks: (() => void)[]; // 上传完成回调列表
 
   // 添加上传任务
   addTask: (
@@ -49,12 +51,17 @@ interface UploadStore {
   getUploadingCount: () => number;
   // 清除已完成的任务
   clearCompletedTasks: () => void;
+  // 添加上传完成回调
+  addUploadCompleteCallback: (callback: () => void) => void;
+  // 移除上传完成回调
+  removeUploadCompleteCallback: (callback: () => void) => void;
 }
 
 export const useUploadStore = create<UploadStore>((set, get) => ({
   tasks: [],
   maxConcurrentUploads: 3,
   isUploading: false,
+  uploadCompleteCallbacks: [],
 
   addTask: task => {
     const id = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -82,6 +89,9 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   },
 
   updateTask: (id, updates) => {
+    const oldTask = get().tasks.find(task => task.id === id);
+    const wasNotSuccess = oldTask && oldTask.status !== 'success';
+
     set(state => ({
       tasks: state.tasks.map(task => {
         if (task.id === id) {
@@ -97,6 +107,19 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         return task;
       }),
     }));
+
+    // 如果任务状态从非成功变为成功，触发上传完成回调
+    if (wasNotSuccess && updates.status === 'success') {
+      const { uploadCompleteCallbacks } = get();
+      uploadCompleteCallbacks.forEach(callback => {
+        try {
+          callback();
+        } catch (error) {
+          // 静默处理回调错误
+          void error;
+        }
+      });
+    }
   },
 
   processQueue: () => {
@@ -161,6 +184,18 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   clearCompletedTasks: () => {
     set(state => ({
       tasks: state.tasks.filter(task => !['success', 'error'].includes(task.status)),
+    }));
+  },
+
+  addUploadCompleteCallback: callback => {
+    set(state => ({
+      uploadCompleteCallbacks: [...state.uploadCompleteCallbacks, callback],
+    }));
+  },
+
+  removeUploadCompleteCallback: callback => {
+    set(state => ({
+      uploadCompleteCallbacks: state.uploadCompleteCallbacks.filter(cb => cb !== callback),
     }));
   },
 }));

@@ -1,14 +1,21 @@
-import { createElement, lazy } from 'react';
+import { createElement, lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { RouteLoading } from '@/components/RouteLoading';
+
+// 辅助函数：为懒加载组件添加 Suspense 和加载动画
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const withSuspense = (LazyComponent: React.LazyExoticComponent<React.ComponentType<any>>) => {
+  return <Suspense fallback={<RouteLoading />}>{createElement(LazyComponent)}</Suspense>;
+};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export default createBrowserRouter([
   {
     path: '/',
-    element: createElement(lazy(() => import('@/layouts/BasicLayout.tsx'))),
+    element: withSuspense(lazy(() => import('@/layouts/BasicLayout.tsx'))),
     errorElement: createElement(ErrorBoundary),
     children: [
       // 跳转示例
@@ -18,11 +25,11 @@ export default createBrowserRouter([
       // },
       {
         path: '/',
-        element: createElement(lazy(() => import('@/pages/home/index.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/home/index.tsx'))),
       },
       {
         path: 'test',
-        element: createElement(lazy(() => import('@/pages/home/api-test.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/home/api-test.tsx'))),
       },
     ],
   },
@@ -30,7 +37,7 @@ export default createBrowserRouter([
     path: '/bench',
     element: (
       <ProtectedRoute>
-        {createElement(lazy(() => import('@/layouts/BenchLayout.tsx')))}
+        {withSuspense(lazy(() => import('@/layouts/BenchLayout.tsx')))}
       </ProtectedRoute>
     ),
     errorElement: createElement(ErrorBoundary),
@@ -41,32 +48,42 @@ export default createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: createElement(lazy(() => import('@/pages/dashboard/index.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/dashboard/index.tsx'))),
+      },
+      {
+        path: 'dashboard/:folderId',
+        element: withSuspense(lazy(() => import('@/pages/dashboard/index.tsx'))),
       },
       {
         path: 'share',
-        element: createElement(lazy(() => import('@/pages/share/index.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/share/index.tsx'))),
       },
     ],
   },
   {
     path: '/user',
-    element: createElement(lazy(() => import('@/layouts/UserLayout.tsx'))),
+    element: withSuspense(lazy(() => import('@/layouts/UserLayout.tsx'))),
     errorElement: createElement(ErrorBoundary),
     children: [
       {
         path: 'login',
-        element: createElement(lazy(() => import('@/pages/user/login/index.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/user/login/index.tsx'))),
       },
       {
         path: 'login/sso-callback',
-        element: createElement(lazy(() => import('@/pages/user/sso-callback.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/user/sso-callback.tsx'))),
       },
       {
         path: 'register',
-        element: createElement(lazy(() => import('@/pages/user/register/index.tsx'))),
+        element: withSuspense(lazy(() => import('@/pages/user/register/index.tsx'))),
       },
     ],
+  },
+  // 公共分享访问页面（无需认证）
+  {
+    path: '/share/:shareId',
+    element: withSuspense(lazy(() => import('@/pages/share/access.tsx'))),
+    errorElement: createElement(ErrorBoundary),
   },
   // 添加通配符路由，捕获所有未匹配的路径
   {

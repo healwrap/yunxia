@@ -25,6 +25,7 @@ export interface HandshakeRequest {
   fileSize: number;
   fileExtension: string;
   mimeType: string; // MIME类型，从前端文件对象获取
+  parentId?: string; // 上传到的父文件夹ID，可选，默认根目录
 }
 
 export interface HandshakeResponse {
@@ -86,12 +87,5 @@ export const uploadApi = {
    */
   cancelUpload: async (fileHash: string): Promise<{ success: boolean }> => {
     return request.post('/upload/cancel', { fileHash });
-  },
-
-  /**
-   * 获取文件列表
-   */
-  getFileList: async (folderId?: string): Promise<{ items: FileItem[] }> => {
-    return request.get('/files', { params: { folderId } });
   },
 };

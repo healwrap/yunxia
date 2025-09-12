@@ -10,7 +10,11 @@ import { initializeDatabase } from './src/config/database';
 import { clerkMiddleware } from './src/middlewares/clerk';
 import { errorHandler } from './src/middlewares/error/errorHandler';
 import { httpLogger } from './src/middlewares/error/httpLogger';
+import { userStorageInitMiddleware } from './src/middlewares/userStorageInit';
 // 导入路由
+import fileRoutes from './src/routes/fileRoutes';
+import shareRoutes from './src/routes/shareRoutes';
+import storageRoutes from './src/routes/storageRoutes';
 import uploadRoutes from './src/routes/uploadRoutes';
 import { initializeStorage } from './src/utils/file';
 import logger from './src/utils/logger';
@@ -67,9 +71,21 @@ app.use(bodyParser());
 // 全局认证中间件
 app.use(clerkMiddleware());
 
+// 用户存储初始化中间件
+app.use(userStorageInitMiddleware);
+
 // 注册路由
 app.use(uploadRoutes.routes());
 app.use(uploadRoutes.allowedMethods());
+
+app.use(fileRoutes.routes());
+app.use(fileRoutes.allowedMethods());
+
+app.use(shareRoutes.routes());
+app.use(shareRoutes.allowedMethods());
+
+app.use(storageRoutes.routes());
+app.use(storageRoutes.allowedMethods());
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

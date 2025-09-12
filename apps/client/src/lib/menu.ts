@@ -64,8 +64,10 @@ export function getMenuItems(routes: RouteConfig[]): MenuItem[] {
 
   if (!benchRoute || !benchRoute.children) return [];
 
-  // 过滤掉index: true的子路由（重定向路由）
-  const benchChildren = benchRoute.children.filter((child: RouteConfig) => !child.index);
+  // 过滤掉index: true的子路由（重定向路由）和带参数的路由
+  const benchChildren = benchRoute.children.filter(
+    (child: RouteConfig) => !child.index && child.path && !child.path.includes(':')
+  );
 
   // 将子路由转换为菜单项
   return benchChildren.map((child: RouteConfig, index: number) => {

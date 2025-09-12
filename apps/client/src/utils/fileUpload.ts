@@ -44,7 +44,8 @@ export const processFileUpload = async (
   task: UploadTask,
   updateTask: (updates: Partial<UploadTask>) => void,
   getTaskById: (id: string) => UploadTask | undefined,
-  abortController: AbortController
+  abortController: AbortController,
+  parentId?: string // 添加父文件夹ID参数
 ) => {
   const taskId = task.id;
 
@@ -66,6 +67,7 @@ export const processFileUpload = async (
         fileSize: currentTask.file.size,
         fileExtension: currentTask.file.name.substring(currentTask.file.name.lastIndexOf('.')),
         mimeType: currentTask.file.type || 'application/octet-stream', // 使用文件对象的MIME类型
+        parentId, // 传递父文件夹ID
       },
       abortController.signal
     );
@@ -280,7 +282,8 @@ export const processUploadQueue = async (
         updateTask(task.id, updates);
       },
       getTaskById,
-      abortController
+      abortController,
+      task.parentId // 从任务中获取父文件夹ID
     ).finally(() => {
       // 上传完成后清理 AbortController
       taskAbortControllers.delete(task.id);

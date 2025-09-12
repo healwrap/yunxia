@@ -1,7 +1,9 @@
 import { Context } from 'koa';
 
 import { AppDataSource } from '../config/database';
+import { FILE_STATUS } from '../constants/files';
 import { File } from '../entities/File';
+import { UserStorageService } from '../services/UserStorageService';
 import { ChunkUploadResponse, HandshakeRequest, HandshakeResponse } from '../types/upload';
 import {
   cleanupUpload,
@@ -13,6 +15,76 @@ import {
   writeUploadStatusFile,
 } from '../utils/file';
 import logger from '../utils/logger';
+
+/**
+ * 生成唯一的文件名，如果存在重名则添加 (数字) 后缀
+ */
+async function generateUniqueFileName(
+  originalName: string,
+  parentId: string | null,
+  userId: string
+): Promise<string> {
+  const fileRepository = AppDataSource.getRepository(File);
+
+  // 构建查询条件
+  let queryBuilder = fileRepository
+    .createQueryBuilder('file')
+    .where('file.name = :name', { name: originalName })
+    .andWhere('file.user_id = :userId', { userId })
+    .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE });
+
+  // 添加父目录条件
+  if (parentId) {
+    queryBuilder = queryBuilder.andWhere('file.parent_id = :parentId', { parentId });
+  } else {
+    queryBuilder = queryBuilder.andWhere('file.parent_id IS NULL');
+  }
+
+  // 检查原名是否可用
+  const existingFile = await queryBuilder.getOne();
+
+  if (!existingFile) {
+    return originalName;
+  }
+
+  // 如果存在重名，生成带数字后缀的文件名
+  const nameWithoutExt = originalName.includes('.')
+    ? originalName.substring(0, originalName.lastIndexOf('.'))
+    : originalName;
+  const extension = originalName.includes('.')
+    ? originalName.substring(originalName.lastIndexOf('.'))
+    : '';
+
+  let counter = 1;
+  let newName: string;
+
+  do {
+    newName = `${nameWithoutExt}(${counter})${extension}`;
+
+    // 重新构建查询条件检查新名字
+    let checkBuilder = fileRepository
+      .createQueryBuilder('file')
+      .where('file.name = :name', { name: newName })
+      .andWhere('file.user_id = :userId', { userId })
+      .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE });
+
+    if (parentId) {
+      checkBuilder = checkBuilder.andWhere('file.parent_id = :parentId', { parentId });
+    } else {
+      checkBuilder = checkBuilder.andWhere('file.parent_id IS NULL');
+    }
+
+    const conflictFile = await checkBuilder.getOne();
+
+    if (!conflictFile) {
+      break;
+    }
+
+    counter++;
+  } while (counter < 1000); // 防止无限循环，最多尝试1000次
+
+  return newName;
+}
 
 /**
  * 处理上传握手请求
@@ -40,63 +112,73 @@ export const handleHandshake = async (ctx: Context): Promise<void> => {
     userId,
   });
 
-  // 检查文件是否已存在，如果是当前用户已经上传过，显示文件已上传过，如果是其他用户上传过，显示文件已秒传
+  // 初始化用户存储服务
+  const userStorageService = new UserStorageService();
+
+  // 确保用户存储信息已初始化
+  await userStorageService.initializeUserStorage(userId);
+
+  // 检查用户是否有足够的存储空间
+  const hasEnoughSpace = await userStorageService.checkSpaceAvailable(userId, BigInt(fileSize));
+  if (!hasEnoughSpace) {
+    logger.warn(`存储空间不足: ${filename} (${fileHash})`, {
+      fileSize,
+      userId,
+    });
+    ctx.status = 413;
+    ctx.body = {
+      code: 413,
+      message: '存储空间不足，无法上传此文件',
+      data: null,
+    };
+    return;
+  }
+
+  // 检查是否有相同MD5的文件存在（秒传逻辑）
   const fileRepository = AppDataSource.getRepository(File);
-  const existingFile = await fileRepository.findOne({
+  const existingFileByHash = await fileRepository.findOne({
     where: { md5: fileHash },
   });
 
-  if (existingFile) {
-    // 检查是否为当前用户自己上传的文件
-    if (existingFile.user_id === userId) {
-      // 如果是当前用户自己的文件，直接返回结果，不添加新记录
-      logger.info(`文件已存在，当前用户已上传: ${filename} (${fileHash})`, {
-        fileId: existingFile.id,
-        userId,
-      });
+  // 检查当前文件夹下是否存在同名文件，如果存在则生成唯一文件名
+  const uniqueFilename = await generateUniqueFileName(filename, parentId, userId);
 
-      ctx.body = {
-        code: 200,
-        message: '您已上传过此文件',
-        data: {
-          hasUploaded: true,
-          chunks: [],
-          fileId: existingFile.id,
-        } as HandshakeResponse,
-      };
-      return;
-    } else {
-      // 如果是其他用户上传的文件，创建新的文件记录（复制）
-      const newFile = fileRepository.create({
-        name: filename,
-        path: existingFile.path, // 使用同一物理文件
-        size: fileSize,
-        type: mimeType || 'application/octet-stream', // 使用前端传递的MIME类型
-        is_folder: false,
-        user_id: userId,
-        status: 'active',
-        md5: fileHash,
-        parent_id: parentId,
-      });
+  if (existingFileByHash) {
+    // 如果存在相同MD5的文件，可以秒传
+    // 但仍然要创建新的文件记录，使用在当前文件夹下的唯一文件名
+    const newFile = fileRepository.create({
+      name: uniqueFilename,
+      path: existingFileByHash.path, // 使用同一物理文件
+      size: fileSize,
+      type: mimeType || 'application/octet-stream', // 使用前端传递的MIME类型
+      is_folder: false,
+      user_id: userId,
+      status: FILE_STATUS.ACTIVE,
+      md5: fileHash,
+      parent_id: parentId,
+    });
 
-      const savedFile = await fileRepository.save(newFile);
+    const savedFile = await fileRepository.save(newFile);
 
-      logger.info(`文件秒传成功: ${filename} (${fileHash})`, {
+    // 更新用户存储空间（秒传也需要占用用户空间）
+    await userStorageService.updateUsedSpace(userId, BigInt(fileSize));
+
+    logger.info(`文件秒传成功: ${filename} -> ${uniqueFilename} (${fileHash})`, {
+      fileId: savedFile.id,
+      userId,
+      fileSize,
+    });
+
+    ctx.body = {
+      code: 200,
+      message: '文件已秒传',
+      data: {
+        hasUploaded: true,
+        chunks: [],
         fileId: savedFile.id,
-        userId,
-      });
-
-      ctx.body = {
-        code: 200,
-        message: '文件已秒传',
-        data: {
-          hasUploaded: true,
-          chunks: [],
-          fileId: savedFile.id,
-        } as HandshakeResponse,
-      };
-      return;
-    }
+      } as HandshakeResponse,
+    };
+    return;
   }
 
   // 检查是否有部分上传的状态文件
@@ -105,7 +187,7 @@ export const handleHandshake = async (ctx: Context): Promise<void> => {
   // 如果没有状态文件，创建新的
   if (!statusFile) {
     statusFile = {
-      filename,
+      filename: uniqueFilename, // 使用前面生成的唯一文件名
       fileHash,
       fileSize,
       fileExtension,
@@ -240,7 +322,7 @@ export const handleChunkUpload = async (ctx: Context): Promise<void> => {
       type: statusFile.mimeType || 'application/octet-stream', // 使用前端传递的MIME类型
       is_folder: false,
       user_id: userId,
-      status: 'active',
+      status: FILE_STATUS.ACTIVE,
       md5: fileHash,
       parent_id: statusFile.parentId || null,
     });
@@ -255,6 +337,10 @@ export const handleChunkUpload = async (ctx: Context): Promise<void> => {
     // 更新文件路径
     savedFile.path = finalPath;
     await fileRepository.save(savedFile);
+
+    // 更新用户存储空间
+    const userStorageService = new UserStorageService();
+    await userStorageService.updateUsedSpace(userId, BigInt(statusFile.fileSize));
 
     // 清理临时文件
     await cleanupUpload(fileHash);

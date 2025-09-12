@@ -14,13 +14,12 @@ export const useAuthToken = () => {
    * @returns 当前的认证令牌
    */
   const updateRequestToken = async () => {
+    // 此方法不可 useCallback 否则导致状态变化时 token 不更新
     try {
       const token = await getToken();
-      console.log('获取到认证令牌:', token ? '成功' : '失败');
       setRequestToken(token);
       return token;
-    } catch (error) {
-      console.error('获取认证令牌失败:', error);
+    } catch {
       setRequestToken(null);
       return null;
     }

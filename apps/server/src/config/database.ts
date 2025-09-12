@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 
 import { File } from '../entities/File';
 import { Share } from '../entities/Share';
+import { UserStorage } from '../entities/UserStorage';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || 'yunxia',
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',
-  entities: [File, Share],
+  entities: [File, Share, UserStorage],
   migrations: [],
   subscribers: [],
 });

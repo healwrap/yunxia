@@ -67,7 +67,12 @@ const UploadStatusButton: React.FC = () => {
         </Badge>
       ) : (
         <Badge dot={tasks.length > 0}>
-          <Button type="text" shape="circle" icon={<CloudUploadOutlined />} onClick={togglePanel} />
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<CloudUploadOutlined />}
+            onClick={togglePanel}
+          />
         </Badge>
       )}
 
