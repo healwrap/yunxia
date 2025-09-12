@@ -1,0 +1,37 @@
+{
+  "name": "@yunxia/hash-wasm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/release.js",
+  "module": "build/release.js",
+  "types": "build/release.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/release.d.ts",
+        "default": "./build/release.js"
+      }
+    }
+  },
+  "scripts": {
+    "clean": "rimraf build",
+    "asbuild": "asc assembly/index.ts --target release",
+    "build": "npm run clean && npm run asbuild",
+    "dev-temp": "nodemon --watch assembly/ --ext ts --exec \"npm run build\"",
+    "test": "node tests",
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "devDependencies": {
+    "assemblyscript": "^0.28.7",
+    "esbuild": "^0.25.9",
+    "nodemon": "^3.1.10",
+    "rimraf": "6.0.1",
+    "typescript": "^5.5.4"
+  },
+  "type": "module"
+}

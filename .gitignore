@@ -40,3 +40,9 @@ dist-ssr
 *.sql
 
 doc
+
+.env.*
+
+logs
+
+uploads

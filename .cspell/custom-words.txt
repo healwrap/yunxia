@@ -5,3 +5,7 @@ Sider
 Yunxia
 frameloop
 fract
+changetype
+hashwasm
+merkle
+ILIKE
