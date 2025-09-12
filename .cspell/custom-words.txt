@@ -5,3 +5,5 @@ Sider
 Yunxia
 frameloop
 fract
+changetype
+hashwasm

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MD5 Hash Algorithm Comparison</title>
+  </head>
+  <body>
+    <h1>MD5 Hash Algorithm Performance Comparison</h1>
+
+    <div>
+      <h2>Select a file to hash:</h2>
+      <input type="file" id="fileInput" />
+      <br /><br />
+      <button onclick="runComparison()" id="compareBtn" disabled>Compare MD5 Algorithms</button>
+    </div>
+
+    <div id="fileInfo" style="display: none">
+      <h3>File Information:</h3>
+      <p>Name: <span id="fileName"></span></p>
+      <p>Size: <span id="fileSize"></span> bytes (<span id="fileSizeHuman"></span>)</p>
+      <p>Type: <span id="fileType"></span></p>
+    </div>
+
+    <div id="results">
+      <h3>Results:</h3>
+      <table border="1" style="margin-top: 20px; border-collapse: collapse">
+        <thead>
+          <tr>
+            <th style="padding: 8px">Algorithm</th>
+            <th style="padding: 8px">Hash Result</th>
+            <th style="padding: 8px">Time (ms)</th>
+            <th style="padding: 8px">Speed (MB/s)</th>
+            <th style="padding: 8px">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 8px">SparkMD5</td>
+            <td style="padding: 8px; font-family: monospace" id="sparkResult">-</td>
+            <td style="padding: 8px" id="sparkTime">-</td>
+            <td style="padding: 8px" id="sparkSpeed">-</td>
+            <td style="padding: 8px" id="sparkStatus">Ready</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px">Hash-WASM</td>
+            <td style="padding: 8px; font-family: monospace" id="hashwasmResult">-</td>
+            <td style="padding: 8px" id="hashwasmTime">-</td>
+            <td style="padding: 8px" id="hashwasmSpeed">-</td>
+            <td style="padding: 8px" id="hashwasmStatus">Ready</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px">Custom WASM</td>
+            <td style="padding: 8px; font-family: monospace" id="customResult">-</td>
+            <td style="padding: 8px" id="customTime">-</td>
+            <td style="padding: 8px" id="customSpeed">-</td>
+            <td style="padding: 8px" id="customStatus">Ready</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="summary" style="display: none">
+      <h3>Summary:</h3>
+      <p id="summaryText"></p>
+      <p id="validationText"></p>
+    </div>
+
+    <!-- Load libraries via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/spark-md5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/md5.umd.min.js"></script>
+
+    <script type="module">
+      let selectedFile = null;
+      let customWasm = null;
+
+      // Load our custom WASM module using the glue code
+      async function loadCustomWasm() {
+        try {
+          customWasm = await import('./build/release.js');
+          console.log('Custom WASM loaded successfully');
+        } catch (error) {
+          console.error('Failed to load custom WASM:', error);
+          document.getElementById('customStatus').textContent = 'WASM Load Failed';
+        }
+      }
+
+      // Initialize on page load
+      loadCustomWasm();
+
+      // File input handler
+      document.getElementById('fileInput').addEventListener('change', function (e) {
+        selectedFile = e.target.files[0];
+        if (selectedFile) {
+          document.getElementById('compareBtn').disabled = false;
+          showFileInfo(selectedFile);
+        }
+      });
+
+      function showFileInfo(file) {
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = file.size.toLocaleString();
+        document.getElementById('fileSizeHuman').textContent = formatBytes(file.size);
+        document.getElementById('fileType').textContent = file.type || 'unknown';
+        document.getElementById('fileInfo').style.display = 'block';
+      }
+
+      function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      window.runComparison = async function () {
+        if (!selectedFile) return;
+
+        document.getElementById('compareBtn').disabled = true;
+        resetResults();
+
+        const fileBuffer = await selectedFile.arrayBuffer();
+        const fileData = new Uint8Array(fileBuffer);
+        const fileSizeMB = fileBuffer.byteLength / (1024 * 1024);
+
+        console.log(`Testing file: ${selectedFile.name} (${formatBytes(fileBuffer.byteLength)})`);
+
+        // Test SparkMD5
+        await testSparkMD5(fileData, fileSizeMB);
+
+        // Test Hash-WASM
+        await testHashWasm(fileData, fileSizeMB);
+
+        // Test Custom WASM
+        await testCustomWasm(fileData, fileSizeMB);
+
+        showSummary();
+        document.getElementById('compareBtn').disabled = false;
+      };
+
+      function resetResults() {
+        ['spark', 'hashwasm', 'custom'].forEach(prefix => {
+          document.getElementById(prefix + 'Result').textContent = '-';
+          document.getElementById(prefix + 'Time').textContent = '-';
+          document.getElementById(prefix + 'Speed').textContent = '-';
+          document.getElementById(prefix + 'Status').textContent = 'Processing...';
+        });
+        document.getElementById('summary').style.display = 'none';
+      }
+
+      async function testSparkMD5(fileData, fileSizeMB) {
+        try {
+          const startTime = performance.now();
+          const hash = SparkMD5.ArrayBuffer.hash(fileData.buffer);
+          const endTime = performance.now();
+
+          const duration = endTime - startTime;
+          const speed = fileSizeMB / (duration / 1000);
+
+          document.getElementById('sparkResult').textContent = hash;
+          document.getElementById('sparkTime').textContent = duration.toFixed(2);
+          document.getElementById('sparkSpeed').textContent = speed.toFixed(2);
+          document.getElementById('sparkStatus').textContent = 'Completed';
+        } catch (error) {
+          document.getElementById('sparkStatus').textContent = 'Error: ' + error.message;
+        }
+      }
+
+      async function testHashWasm(fileData, fileSizeMB) {
+        try {
+          const startTime = performance.now();
+          const hash = await hashwasm.md5(fileData);
+          const endTime = performance.now();
+
+          const duration = endTime - startTime;
+          const speed = fileSizeMB / (duration / 1000);
+
+          document.getElementById('hashwasmResult').textContent = hash;
+          document.getElementById('hashwasmTime').textContent = duration.toFixed(2);
+          document.getElementById('hashwasmSpeed').textContent = speed.toFixed(2);
+          document.getElementById('hashwasmStatus').textContent = 'Completed';
+        } catch (error) {
+          document.getElementById('hashwasmStatus').textContent = 'Error: ' + error.message;
+        }
+      }
+
+      async function testCustomWasm(fileData, fileSizeMB) {
+        if (!customWasm) {
+          document.getElementById('customStatus').textContent = 'WASM not loaded';
+          return;
+        }
+
+        try {
+          const startTime = performance.now();
+
+          // Use the md5Hex function from our custom WASM module
+          const hash = customWasm.md5Hex(fileData);
+
+          const endTime = performance.now();
+          const duration = endTime - startTime;
+          const speed = fileSizeMB / (duration / 1000);
+
+          document.getElementById('customResult').textContent = hash;
+          document.getElementById('customTime').textContent = duration.toFixed(2);
+          document.getElementById('customSpeed').textContent = speed.toFixed(2);
+          document.getElementById('customStatus').textContent = 'Completed';
+        } catch (error) {
+          console.error('Custom WASM error:', error);
+          document.getElementById('customStatus').textContent = 'Error: ' + error.message;
+        }
+      }
+
+      function showSummary() {
+        const sparkHash = document.getElementById('sparkResult').textContent;
+        const hashwasmHash = document.getElementById('hashwasmResult').textContent;
+        const customHash = document.getElementById('customResult').textContent;
+
+        const sparkTime = parseFloat(document.getElementById('sparkTime').textContent);
+        const hashwasmTime = parseFloat(document.getElementById('hashwasmTime').textContent);
+        const customTime = parseFloat(document.getElementById('customTime').textContent);
+
+        // Find fastest algorithm
+        const times = [
+          { name: 'SparkMD5', time: sparkTime },
+          { name: 'Hash-WASM', time: hashwasmTime },
+          { name: 'Custom WASM', time: customTime },
+        ].filter(t => !isNaN(t.time));
+
+        if (times.length > 0) {
+          times.sort((a, b) => a.time - b.time);
+          const fastest = times[0];
+          document.getElementById('summaryText').textContent =
+            `Fastest algorithm: ${fastest.name} (${fastest.time.toFixed(2)}ms)`;
+        }
+
+        // Validate hash consistency
+        const hashes = [sparkHash, hashwasmHash, customHash].filter(h => h !== '-');
+        const allSame = hashes.length > 1 && hashes.every(h => h === hashes[0]);
+
+        document.getElementById('validationText').textContent = allSame
+          ? '✅ All hash results match!'
+          : '❌ Hash results differ!';
+        document.getElementById('validationText').style.color = allSame ? 'green' : 'red';
+
+        document.getElementById('summary').style.display = 'block';
+      }
+    </script>
+  </body>
+</html>

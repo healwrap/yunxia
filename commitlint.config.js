@@ -1,4 +1,4 @@
-const fg = require('fast-glob');
+import fg from 'fast-glob';
 
 const getPackages = packagePath =>
   fg.sync('*', { cwd: packagePath, onlyDirectories: true, deep: 2 });
@@ -21,7 +21,7 @@ const scopes = [
 
 // JS Doc 可以像 ts 一样提供代码类型提示
 /** @type {import('cz-git').UserConfig} */
-module.exports = {
+export default {
   extends: ['@commitlint/config-conventional'], // 约定式提交 规范
   parserPreset: 'conventional-changelog-conventionalcommits',
   rules: {
