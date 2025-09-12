@@ -8,6 +8,7 @@ import {
   ShareAltOutlined,
 } from '@ant-design/icons';
 import { Button, Popover, Space, Table, Tooltip, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import React from 'react';
 
 import { formatFileSize } from '../../utils/format';
@@ -99,7 +100,7 @@ const FileList: React.FC<FileListProps> = ({
     </div>
   );
 
-  const columns = [
+  const columns: ColumnsType<FileItem> = [
     {
       title: '名称',
       dataIndex: 'name',
@@ -121,20 +122,22 @@ const FileList: React.FC<FileListProps> = ({
       dataIndex: 'size',
       key: 'size',
       render: (size: number, record: FileItem) => (record.isFolder ? '-' : formatFileSize(size)),
-      width: 120,
+      width: 100,
+      responsive: ['md'] as const,
     },
     {
       title: '修改时间',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
-      width: 180,
+      render: (date: string) => new Date(date).toLocaleDateString('zh-CN'),
+      width: 120,
+      responsive: ['lg'] as const,
     },
     {
       title: '操作',
       key: 'action',
       render: (_: unknown, record: FileItem) => (
-        <Space size="small">
+        <Space size={0}>
           {!record.isFolder && (
             <Tooltip title="预览">
               <Button
@@ -183,8 +186,9 @@ const FileList: React.FC<FileListProps> = ({
           </Popover>
         </Space>
       ),
-      width: 200,
+      width: 140,
       align: 'center' as const,
+      fixed: 'right' as const,
     },
   ];
 
@@ -209,6 +213,8 @@ const FileList: React.FC<FileListProps> = ({
             }
           : false
       }
+      scroll={{ x: 600 }}
+      size="small"
       className="file-list-table"
     />
   );

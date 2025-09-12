@@ -15,8 +15,8 @@ export const calculateFileHash = async (
     const options: HashWorkerOptions = {
       file,
       config: {
-        chunkSize: 5, // 5MB 的分片大小
-        workerCount: 4,
+        chunkSize: 10, // 10MB 的分片大小
+        workerCount: navigator.hardwareConcurrency || 4,
         strategy: 'md5' as unknown as Strategy,
       },
     };

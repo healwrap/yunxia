@@ -1,0 +1,553 @@
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import { Context } from 'koa';
+
+import { AppDataSource } from '../config/database';
+import { SHARE_STATUS } from '../constants/files';
+import { File } from '../entities/File';
+import { Share } from '../entities/Share';
+import logger from '../utils/logger';
+
+/**
+ * 验证用户身份并获取用户ID
+ */
+const getUserId = (ctx: Context): string => {
+  const userId = ctx.state.auth?.sub;
+  if (!userId) {
+    throw new Error('未认证的用户');
+  }
+  return userId;
+};
+
+export class ShareController {
+  // 检查文件分享状态
+  static async getFileShareStatus(ctx: Context) {
+    try {
+      const { fileId } = ctx.params;
+
+      if (!fileId) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '文件ID不能为空' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+      const fileRepo = AppDataSource.getRepository(File);
+
+      // 获取当前用户ID
+      const userId = getUserId(ctx);
+
+      // 检查文件是否存在并属于当前用户
+      const file = await fileRepo.findOne({
+        where: { id: fileId, user_id: userId },
+      });
+
+      if (!file) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '文件不存在' };
+        return;
+      }
+
+      // 查找分享记录
+      const share = await shareRepo.findOne({
+        where: { file_id: fileId },
+      });
+
+      if (!share) {
+        ctx.body = {
+          code: 200,
+          message: 'success',
+          data: {
+            hasShare: false,
+          },
+        };
+        return;
+      }
+
+      const isExpired = share.expired_at && new Date() > share.expired_at;
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          hasShare: true,
+          share: {
+            id: share.id,
+            shareId: share.share_id,
+            hasPassword: !!share.password,
+            expiredAt: share.expired_at,
+            status: isExpired ? SHARE_STATUS.EXPIRED : SHARE_STATUS.ACTIVE,
+            accessCount: share.access_count,
+            createdAt: share.created_at,
+          },
+        },
+      };
+    } catch (error) {
+      logger.error('获取文件分享状态失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 创建或更新分享
+  static async createShare(ctx: Context) {
+    try {
+      const { fileId, password, expiredAt } = (ctx.request as any).body as {
+        fileId: string;
+        password?: string;
+        expiredAt?: string;
+      };
+
+      if (!fileId) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '文件ID不能为空' };
+        return;
+      }
+
+      const fileRepo = AppDataSource.getRepository(File);
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 获取当前用户ID
+      const userId = getUserId(ctx);
+
+      // 检查文件是否存在并属于当前用户
+      const file = await fileRepo.findOne({
+        where: { id: fileId, user_id: userId },
+      });
+
+      if (!file) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '文件不存在' };
+        return;
+      }
+
+      // 检查是否已有分享记录
+      const existingShare = await shareRepo.findOne({
+        where: { file_id: fileId },
+      });
+
+      // 处理过期时间
+      let expiredAtDate: Date | null = null;
+      if (expiredAt) {
+        expiredAtDate = new Date(expiredAt);
+        if (isNaN(expiredAtDate.getTime())) {
+          ctx.status = 400;
+          ctx.body = { code: 400, message: '过期时间格式无效' };
+          return;
+        }
+      }
+
+      let share: Share;
+      let isNew = false;
+
+      if (existingShare) {
+        // 更新现有分享
+        existingShare.password = password || null;
+        existingShare.expired_at = expiredAtDate;
+        share = await shareRepo.save(existingShare);
+        logger.info(`更新分享成功: ${share.share_id}`);
+      } else {
+        // 创建新分享记录
+        const shareId = randomUUID();
+        share = shareRepo.create({
+          file_id: fileId,
+          share_id: shareId,
+          password: password || null,
+          expired_at: expiredAtDate,
+          access_count: 0,
+        });
+        share = await shareRepo.save(share);
+        isNew = true;
+        logger.info(`创建分享成功: ${shareId}`);
+      }
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          id: share.id,
+          shareId: share.share_id,
+          password: share.password,
+          expiredAt: share.expired_at,
+          createdAt: share.created_at,
+          isNew,
+        },
+      };
+    } catch (error) {
+      logger.error('创建分享失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 获取分享内容
+  static async getShare(ctx: Context) {
+    try {
+      const { shareId } = ctx.params;
+      const { password } = ctx.query;
+
+      if (!shareId) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '分享ID不能为空' };
+        return;
+      }
+
+      // 验证 UUID 格式
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(shareId)) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '无效的分享ID格式' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 查找分享记录，包含文件信息
+      const share = await shareRepo.findOne({
+        where: { share_id: shareId },
+        relations: ['file'],
+      });
+
+      if (!share) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '分享不存在' };
+        return;
+      }
+
+      // 检查是否过期
+      if (share.expired_at && new Date() > share.expired_at) {
+        ctx.status = 410;
+        ctx.body = { code: 410, message: '分享已过期' };
+        return;
+      }
+
+      // 检查密码
+      if (share.password && share.password !== password) {
+        ctx.status = 401;
+        ctx.body = { code: 401, message: '密码错误' };
+        return;
+      }
+
+      // 增加访问次数
+      share.access_count += 1;
+      await shareRepo.save(share);
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          share: {
+            id: share.id,
+            expiredAt: share.expired_at,
+            hasPassword: !!share.password,
+            createdAt: share.created_at,
+          },
+          file: {
+            id: share.file.id,
+            name: share.file.name,
+            size: share.file.size,
+            type: share.file.type,
+            isFolder: share.file.is_folder,
+          },
+        },
+      };
+    } catch (error) {
+      logger.error('获取分享失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 下载分享文件
+  static async downloadShare(ctx: Context) {
+    try {
+      const { shareId } = ctx.params;
+      const { password } = ctx.query;
+
+      if (!shareId) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '分享ID不能为空' };
+        return;
+      }
+
+      // 验证 UUID 格式
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(shareId)) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '无效的分享ID格式' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 查找分享记录，包含文件信息
+      const share = await shareRepo.findOne({
+        where: { share_id: shareId },
+        relations: ['file'],
+      });
+
+      if (!share) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '分享不存在' };
+        return;
+      }
+
+      // 检查是否过期
+      if (share.expired_at && new Date() > share.expired_at) {
+        ctx.status = 410;
+        ctx.body = { code: 410, message: '分享已过期' };
+        return;
+      }
+
+      // 检查密码
+      if (share.password && share.password !== password) {
+        ctx.status = 401;
+        ctx.body = { code: 401, message: '密码错误' };
+        return;
+      }
+
+      const file = share.file;
+
+      // 如果是文件夹，暂不支持下载
+      if (file.is_folder) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '暂不支持下载文件夹' };
+        return;
+      }
+
+      // 检查物理文件是否存在，使用数据库中的路径
+      try {
+        await fs.access(file.path);
+      } catch {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '文件不存在于服务器上' };
+        return;
+      }
+
+      // 设置下载响应头 - 使用 RFC 6266 标准格式，支持中文文件名
+      const encodedFilename = encodeURIComponent(file.name);
+      ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
+      ctx.set('Content-Type', file.type || 'application/octet-stream');
+      ctx.set('Content-Length', file.size?.toString() || '0');
+
+      // 创建文件流并响应
+      const fileStream = await fs.readFile(file.path);
+      ctx.body = fileStream;
+
+      logger.info(`分享文件下载成功: ${shareId} - ${file.name}`);
+    } catch (error) {
+      logger.error('下载分享文件失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 更新分享设置
+  static async updateShare(ctx: Context) {
+    try {
+      const { id } = ctx.params;
+      const { password, expiredAt } = (ctx.request as any).body as {
+        password?: string;
+        expiredAt?: string;
+      };
+
+      if (!id) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '分享ID不能为空' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 获取当前用户ID
+      const userId = getUserId(ctx);
+
+      // 查找分享记录，包含文件信息以验证权限
+      const share = await shareRepo.findOne({
+        where: { id },
+        relations: ['file'],
+      });
+
+      if (!share) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '分享不存在' };
+        return;
+      }
+
+      // 检查是否为文件所有者
+      if (share.file.user_id !== userId) {
+        ctx.status = 403;
+        ctx.body = { code: 403, message: '无权限操作' };
+        return;
+      }
+
+      // 更新分享设置
+      if (password !== undefined) {
+        share.password = password || null;
+      }
+
+      if (expiredAt !== undefined) {
+        if (expiredAt) {
+          const expiredAtDate = new Date(expiredAt);
+          if (isNaN(expiredAtDate.getTime())) {
+            ctx.status = 400;
+            ctx.body = { code: 400, message: '过期时间格式无效' };
+            return;
+          }
+          share.expired_at = expiredAtDate;
+        } else {
+          share.expired_at = null;
+        }
+      }
+
+      await shareRepo.save(share);
+
+      logger.info(`更新分享设置成功: ${id}`);
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          id: share.id,
+          shareId: share.share_id,
+          password: share.password,
+          expiredAt: share.expired_at,
+        },
+      };
+    } catch (error) {
+      logger.error('更新分享设置失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 取消分享
+  static async deleteShare(ctx: Context) {
+    try {
+      const { id } = ctx.params;
+
+      if (!id) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '分享ID不能为空' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 获取当前用户ID
+      const userId = getUserId(ctx);
+
+      // 查找分享记录，包含文件信息以验证权限
+      const share = await shareRepo.findOne({
+        where: { id },
+        relations: ['file'],
+      });
+
+      if (!share) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '分享不存在' };
+        return;
+      }
+
+      // 检查是否为文件所有者
+      if (share.file.user_id !== userId) {
+        ctx.status = 403;
+        ctx.body = { code: 403, message: '无权限操作' };
+        return;
+      }
+
+      // 删除分享记录
+      await shareRepo.remove(share);
+
+      logger.info(`取消分享成功: ${id}`);
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+      };
+    } catch (error) {
+      logger.error('取消分享失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 获取分享列表
+  static async getShareList(ctx: Context) {
+    try {
+      const {
+        page = '1',
+        pageSize = '20',
+        status = SHARE_STATUS.ACTIVE,
+      } = ctx.query as {
+        page?: string;
+        pageSize?: string;
+        status?: 'active' | 'expired' | 'all';
+      };
+
+      const pageNum = parseInt(page, 10);
+      const pageSizeNum = parseInt(pageSize, 10);
+      const offset = (pageNum - 1) * pageSizeNum;
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 获取当前用户ID
+      const userId = getUserId(ctx);
+
+      // 构建查询条件
+      const queryBuilder = shareRepo
+        .createQueryBuilder('share')
+        .leftJoinAndSelect('share.file', 'file')
+        .where('file.user_id = :userId', { userId });
+
+      // 根据状态筛选
+      if (status === SHARE_STATUS.ACTIVE) {
+        queryBuilder.andWhere('(share.expired_at IS NULL OR share.expired_at > :now)', {
+          now: new Date(),
+        });
+      } else if (status === SHARE_STATUS.EXPIRED) {
+        queryBuilder.andWhere('share.expired_at IS NOT NULL AND share.expired_at <= :now', {
+          now: new Date(),
+        });
+      }
+
+      // 排序和分页
+      queryBuilder.orderBy('share.created_at', 'DESC').skip(offset).take(pageSizeNum);
+
+      const [shares, total] = await queryBuilder.getManyAndCount();
+
+      const totalPages = Math.ceil(total / pageSizeNum);
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          shares: shares.map(share => {
+            const isExpired = share.expired_at && new Date() > share.expired_at;
+            return {
+              id: share.id,
+              fileId: share.file_id,
+              fileName: share.file.name,
+              shareId: share.share_id,
+              hasPassword: !!share.password,
+              expiredAt: share.expired_at,
+              status: isExpired ? SHARE_STATUS.EXPIRED : SHARE_STATUS.ACTIVE,
+              accessCount: share.access_count,
+              createdAt: share.created_at,
+            };
+          }),
+          pagination: {
+            page: pageNum,
+            pageSize: pageSizeNum,
+            total,
+            totalPages,
+          },
+        },
+      };
+    } catch (error) {
+      logger.error('获取分享列表失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+}

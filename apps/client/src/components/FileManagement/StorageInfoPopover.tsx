@@ -120,7 +120,7 @@ const StorageInfoPopover: React.FC<StorageInfoPopoverProps> = ({ children }) => 
       trigger="click"
       open={open}
       onOpenChange={handleOpenChange}
-      placement="bottomRight"
+      placement="bottom"
     >
       {children || (
         <Button
