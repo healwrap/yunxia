@@ -42,3 +42,7 @@ dist-ssr
 doc
 
 .env.*
+
+logs
+
+uploads

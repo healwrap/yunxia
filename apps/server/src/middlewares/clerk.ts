@@ -1,6 +1,8 @@
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { Context, Next } from 'koa';
 
+import logger from '../utils/logger';
+
 // Clerk 中间件 - 验证用户身份
 export const clerkMiddleware = () => {
   return async (ctx: Context, next: Next) => {
@@ -21,8 +23,7 @@ export const clerkMiddleware = () => {
       ctx.state.auth = sessionClaims;
     } catch {
       // 令牌验证失败
-      // eslint-disable-next-line no-console
-      console.warn('Token verification failed');
+      logger.warn('Token verification failed');
       ctx.state.auth = null;
     }
 
@@ -36,7 +37,7 @@ export const requireAuth = () => {
   return async (ctx: Context, next: Next) => {
     if (!ctx.state.auth) {
       ctx.status = 401;
-      ctx.body = { error: 'Unauthorized' };
+      ctx.body = { code: 401, message: '未授权', data: null };
       return;
     }
     await next();

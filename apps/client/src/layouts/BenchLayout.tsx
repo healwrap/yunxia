@@ -4,12 +4,14 @@ import { Button, Drawer, Layout, Menu, theme } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import UploadStatusButton from '@/components/Upload/UploadStatusButton';
 import { getMenuItems, getSelectedKeys } from '@/lib/menu';
+import { withAuth } from '@/lib/withAuth';
 import router from '@/routes';
 
 const { Header, Sider, Content, Footer } = Layout;
 
-export default function BenchLayout() {
+function BenchLayout() {
   // 侧边栏折叠状态
   const [collapsed, setCollapsed] = useState(false);
   // 抽屉可见状态
@@ -149,7 +151,8 @@ export default function BenchLayout() {
             }}
             className="text-base !w-10 !h-10 ml-6 hover:bg-gray-100"
           />
-          <div className="mr-4">
+          <div className="mr-4 flex items-center space-x-3">
+            <UploadStatusButton />
             <UserButton showName />
           </div>
         </Header>
@@ -169,3 +172,6 @@ export default function BenchLayout() {
     </Layout>
   );
 }
+
+const withAuthPage = withAuth(BenchLayout);
+export default withAuthPage;

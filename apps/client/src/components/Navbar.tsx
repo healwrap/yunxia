@@ -3,6 +3,7 @@ import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+
 // import GradualBlurMemo from "./GradualBlur";
 
 interface NavItem {
@@ -90,13 +91,15 @@ export default function Navbar({
               </Link>
             </SignedOut>
             <SignedIn>
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: 'w-8 h-8',
-                  },
-                }}
-              />
+              <div className="flex items-center space-x-3">
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: 'w-8 h-8',
+                    },
+                  }}
+                />
+              </div>
             </SignedIn>
           </div>
         </div>

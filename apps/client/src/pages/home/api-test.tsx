@@ -1,6 +1,7 @@
 import { Button, Card, Space, Typography } from 'antd';
 import { useState } from 'react';
 
+import { useAuthToken } from '@/lib/auth';
 import request from '@/lib/request';
 
 const { Title, Text } = Typography;
@@ -22,6 +23,8 @@ export default function ApiTest() {
     user: false,
   });
 
+  const { updateRequestToken } = useAuthToken();
+
   // 测试公开 API
   const testPublicApi = async () => {
     setLoading(prev => ({ ...prev, public: true }));
@@ -37,7 +40,9 @@ export default function ApiTest() {
   const testProtectedApi = async () => {
     setLoading(prev => ({ ...prev, protected: true }));
     try {
-      const response = await request.get<ApiResponse>('/protected');
+      // 获取并设置最新的token
+      await updateRequestToken();
+      const response = await request.get<ApiResponse>('/api/upload/status');
       setProtectedResponse(response.data);
     } finally {
       setLoading(prev => ({ ...prev, protected: false }));

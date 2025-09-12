@@ -7,3 +7,4 @@ frameloop
 fract
 changetype
 hashwasm
+merkle

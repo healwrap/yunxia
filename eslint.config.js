@@ -42,7 +42,7 @@ const frontendConfig = {
   rules: {
     ...reactHooks.configs.recommended.rules,
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-    'no-console': 'error',
+    'no-console': 'warn',
   },
 };
 
