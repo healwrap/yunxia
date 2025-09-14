@@ -1,25 +1,16 @@
 import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Divider,
-  message,
-  Modal,
-  Pagination,
-  Space,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
+import { Button, Divider, Pagination, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 
-import { EditShareModal } from '../../components/Share/EditShareModal';
+import { EditShareModal } from '@/components/Share/EditShareModal';
+import { message, modal } from '@/lib/staticMethodsStore';
+
 import { deleteShare, generateShareUrl, getShareList, ShareListItem } from '../../lib/api/share';
+import { useAuthToken } from '../../lib/auth';
 import dayjs from '../../lib/dayjs';
 
 const { Text } = Typography;
-const { confirm } = Modal;
 
 export default function SharePage() {
   const [shares, setShares] = useState<ShareListItem[]>([]);
@@ -29,13 +20,16 @@ export default function SharePage() {
     pageSize: 20,
     total: 0,
   });
-  const [statusFilter, setStatusFilter] = useState<'active' | 'expired' | 'all'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'expired' | 'all'>('all');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentShare, setCurrentShare] = useState<ShareListItem | null>(null);
+
+  const { updateRequestToken } = useAuthToken();
 
   const loadShares = async () => {
     try {
       setLoading(true);
+      await updateRequestToken();
       const response = await getShareList({
         page: pagination.current,
         pageSize: pagination.pageSize,
@@ -66,7 +60,7 @@ export default function SharePage() {
   };
 
   const handleDeleteShare = (id: string, fileName: string) => {
-    confirm({
+    modal.confirm({
       title: '确认取消分享',
       content: `确定要取消分享文件"${fileName}"吗？取消后分享链接将失效。`,
       onOk: async () => {

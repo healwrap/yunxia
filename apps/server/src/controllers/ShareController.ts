@@ -6,6 +6,7 @@ import { AppDataSource } from '../config/database';
 import { SHARE_STATUS } from '../constants/files';
 import { File } from '../entities/File';
 import { Share } from '../entities/Share';
+import { generateDownloadToken, verifyDownloadToken } from '../utils/downloadToken';
 import logger from '../utils/logger';
 
 /**
@@ -262,7 +263,7 @@ export class ShareController {
   static async downloadShare(ctx: Context) {
     try {
       const { shareId } = ctx.params;
-      const { password } = ctx.query;
+      const { password, token } = ctx.query;
 
       if (!shareId) {
         ctx.status = 400;
@@ -270,6 +271,92 @@ export class ShareController {
         return;
       }
 
+      // 如果有token，优先使用token验证
+      if (token) {
+        logger.info(`开始验证token: ${token}`);
+        try {
+          const tokenPayload = verifyDownloadToken(token as string);
+          logger.info(`Token验证成功: ${JSON.stringify(tokenPayload)}`);
+
+          // 验证token中的分享ID是否匹配
+          if (tokenPayload.type !== 'share' || tokenPayload.shareId !== shareId) {
+            logger.error(
+              `Token验证失败: type=${tokenPayload.type}, shareId=${tokenPayload.shareId}, expected=${shareId}`
+            );
+            ctx.status = 401;
+            ctx.body = { code: 401, message: '无效的下载token' };
+            return;
+          }
+
+          logger.info(`Token类型和分享ID验证通过`);
+
+          // 使用token中的密码（如果有）
+          const tokenPassword = tokenPayload.password;
+          logger.info(`Token中的密码: ${tokenPassword ? '有密码' : '无密码'}`);
+
+          // 查找分享记录并验证
+          const shareRepo = AppDataSource.getRepository(Share);
+          const share = await shareRepo.findOne({
+            where: { share_id: shareId },
+            relations: ['file'],
+          });
+
+          if (!share) {
+            logger.error(`分享不存在: shareId=${shareId}`);
+            ctx.status = 404;
+            ctx.body = { code: 404, message: '分享不存在' };
+            return;
+          }
+
+          logger.info(
+            `找到分享记录: ${share.file.name}, 分享密码: ${share.password ? '需要密码' : '无需密码'}`
+          );
+
+          // 检查是否过期
+          if (share.expired_at && new Date() > share.expired_at) {
+            logger.error(`分享已过期: shareId=${shareId}, expiredAt=${share.expired_at}`);
+            ctx.status = 410;
+            ctx.body = { code: 410, message: '分享已过期' };
+            return;
+          }
+
+          // 检查密码验证
+          if (share.password) {
+            // 如果分享需要密码，但token中没有密码，则验证失败
+            if (!tokenPassword) {
+              logger.error(`分享需要密码但token中没有密码: shareId=${shareId}`);
+              ctx.status = 401;
+              ctx.body = { code: 401, message: '无效的下载token，缺少密码验证' };
+              return;
+            }
+            // 验证密码是否正确
+            if (share.password !== tokenPassword) {
+              logger.error(
+                `分享密码不匹配: shareId=${shareId}, 期望=${share.password}, 实际=${tokenPassword}`
+              );
+              ctx.status = 401;
+              ctx.body = { code: 401, message: '密码错误' };
+              return;
+            }
+            logger.info(`密码验证通过`);
+          } else {
+            logger.info(`分享无需密码，跳过密码验证`);
+          }
+
+          // 直接下载文件，跳过后面的验证
+          await ShareController.sendFile(ctx, share.file, shareId);
+          return;
+        } catch (error) {
+          logger.error(
+            `Token验证失败: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+          ctx.status = 401;
+          ctx.body = { code: 401, message: '无效的下载token' };
+          return;
+        }
+      }
+
+      // 原有的验证逻辑（当没有token时）
       // 验证 UUID 格式
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(shareId)) {
@@ -306,40 +393,43 @@ export class ShareController {
         return;
       }
 
-      const file = share.file;
-
-      // 如果是文件夹，暂不支持下载
-      if (file.is_folder) {
-        ctx.status = 400;
-        ctx.body = { code: 400, message: '暂不支持下载文件夹' };
-        return;
-      }
-
-      // 检查物理文件是否存在，使用数据库中的路径
-      try {
-        await fs.access(file.path);
-      } catch {
-        ctx.status = 404;
-        ctx.body = { code: 404, message: '文件不存在于服务器上' };
-        return;
-      }
-
-      // 设置下载响应头 - 使用 RFC 6266 标准格式，支持中文文件名
-      const encodedFilename = encodeURIComponent(file.name);
-      ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
-      ctx.set('Content-Type', file.type || 'application/octet-stream');
-      ctx.set('Content-Length', file.size?.toString() || '0');
-
-      // 创建文件流并响应
-      const fileStream = await fs.readFile(file.path);
-      ctx.body = fileStream;
-
-      logger.info(`分享文件下载成功: ${shareId} - ${file.name}`);
+      await ShareController.sendFile(ctx, share.file, shareId);
     } catch (error) {
       logger.error('下载分享文件失败:', error);
       ctx.status = 500;
       ctx.body = { code: 500, message: '服务器内部错误' };
     }
+  }
+
+  // 提取文件发送逻辑为单独方法
+  static async sendFile(ctx: Context, file: File, shareId: string) {
+    // 如果是文件夹，暂不支持下载
+    if (file.is_folder) {
+      ctx.status = 400;
+      ctx.body = { code: 400, message: '暂不支持下载文件夹' };
+      return;
+    }
+
+    // 检查物理文件是否存在，使用数据库中的路径
+    try {
+      await fs.access(file.path);
+    } catch {
+      ctx.status = 404;
+      ctx.body = { code: 404, message: '文件不存在于服务器上' };
+      return;
+    }
+
+    // 设置下载响应头 - 使用 RFC 6266 标准格式，支持中文文件名
+    const encodedFilename = encodeURIComponent(file.name);
+    ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
+    ctx.set('Content-Type', file.type || 'application/octet-stream');
+    ctx.set('Content-Length', file.size?.toString() || '0');
+
+    // 创建文件流并响应
+    const fileStream = await fs.readFile(file.path);
+    ctx.body = fileStream;
+
+    logger.info(`分享文件下载成功: ${shareId} - ${file.name}`);
   }
 
   // 更新分享设置
@@ -546,6 +636,92 @@ export class ShareController {
       };
     } catch (error) {
       logger.error('获取分享列表失败:', error);
+      ctx.status = 500;
+      ctx.body = { code: 500, message: '服务器内部错误' };
+    }
+  }
+
+  // 生成临时下载链接
+  static async generateDownloadLink(ctx: Context) {
+    try {
+      const { shareId } = ctx.params;
+      const { password } = ctx.query;
+
+      if (!shareId) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '分享ID不能为空' };
+        return;
+      }
+
+      // 验证 UUID 格式
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(shareId)) {
+        ctx.status = 400;
+        ctx.body = { code: 400, message: '无效的分享ID格式' };
+        return;
+      }
+
+      const shareRepo = AppDataSource.getRepository(Share);
+
+      // 查找分享记录，包含文件信息
+      const share = await shareRepo.findOne({
+        where: { share_id: shareId },
+        relations: ['file'],
+      });
+
+      if (!share) {
+        ctx.status = 404;
+        ctx.body = { code: 404, message: '分享不存在' };
+        return;
+      }
+
+      // 检查是否过期
+      if (share.expired_at && new Date() > share.expired_at) {
+        ctx.status = 410;
+        ctx.body = { code: 410, message: '分享已过期' };
+        return;
+      }
+
+      // 检查密码
+      if (share.password && share.password !== password) {
+        ctx.status = 401;
+        ctx.body = { code: 401, message: '密码错误' };
+        return;
+      }
+
+      // 生成临时下载token
+      const tokenPayload: any = {
+        type: 'share',
+        shareId: shareId,
+      };
+
+      // 只有当密码存在时才添加到token中
+      if (password) {
+        tokenPayload.password = password as string;
+      }
+
+      const downloadToken = generateDownloadToken(tokenPayload);
+
+      // 构建完整的下载链接
+      const port = process.env.PORT || 3000;
+      const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+      const downloadUrl = `${baseUrl}/api/shares/${shareId}/download?token=${downloadToken}`;
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          downloadUrl,
+          token: downloadToken,
+          expiresIn: 3600, // 1小时，以秒为单位
+          fileName: share.file.name,
+          fileSize: share.file.size,
+        },
+      };
+
+      logger.info(`生成临时下载链接成功: ${shareId} - ${share.file.name}`);
+    } catch (error) {
+      logger.error('生成临时下载链接失败:', error);
       ctx.status = 500;
       ctx.body = { code: 500, message: '服务器内部错误' };
     }

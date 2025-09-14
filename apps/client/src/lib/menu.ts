@@ -1,4 +1,9 @@
-import { DashboardOutlined, ShareAltOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  DashboardOutlined,
+  DeleteOutlined,
+  ShareAltOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { createElement } from 'react';
 
@@ -25,6 +30,10 @@ export function getMenuItem(path: string, key: React.Key): MenuItem {
     case 'share':
       icon = createElement(ShareAltOutlined);
       label = '分享';
+      break;
+    case 'trash':
+      icon = createElement(DeleteOutlined);
+      label = '回收站';
       break;
     case 'user':
       icon = createElement(UserOutlined);

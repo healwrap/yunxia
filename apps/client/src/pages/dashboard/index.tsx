@@ -1,5 +1,5 @@
 import { FolderAddOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Breadcrumb, Button, Empty, message, notification, Progress, Space } from 'antd';
+import { Breadcrumb, Button, Empty, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import FileList from '@/components/FileManagement/FileList';
 import FileUploader from '@/components/FileManagement/FileUploader';
 import RenameModal from '@/components/FileManagement/RenameModal';
 import { ShareModal } from '@/components/Share/ShareModal';
+import { message } from '@/lib/staticMethodsStore';
 
 import { fileApi, FileItem } from '../../lib/api/file';
 import { useAuthToken } from '../../lib/auth';
@@ -38,9 +39,6 @@ function FileManagement() {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [currentFile, setCurrentFile] = useState<FileItem | null>(null);
-
-  // 使用 notification hooks（推荐方式）
-  const [api, contextHolder] = notification.useNotification();
 
   const { updateRequestToken } = useAuthToken();
 
@@ -178,63 +176,19 @@ function FileManagement() {
 
   // 处理文件下载
   const handleDownload = async (file: FileItem) => {
-    // 在函数开始就定义 notificationKey，确保在整个函数中都可以访问
-    const notificationKey = `download-${file.id}-${Date.now()}`;
-
     try {
       await updateRequestToken();
-      // 显示下载开始通知（使用 hooks API）
-      api.info({
-        key: notificationKey,
-        message: '文件下载中',
-        description: (
-          <div>
-            <div style={{ marginBottom: 8 }}>{file.name}</div>
-            <Progress percent={0} size="small" />
-          </div>
-        ),
-        duration: 0, // 不自动关闭
-        placement: 'topRight',
-      });
 
-      // 开始下载，传入进度回调
-      await fileApi.downloadFile(file.id, progressEvent => {
-        const { loaded, total, percentage } = progressEvent;
-        if (total && total > 0) {
-          // 更新下载进度（使用 hooks API）
-          api.info({
-            key: notificationKey,
-            message: '文件下载中',
-            description: (
-              <div>
-                <div style={{ marginBottom: 8 }}>{file.name}</div>
-                <Progress percent={percentage} size="small" />
-                <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
-                  {percentage}% ({(loaded / 1024 / 1024).toFixed(2)} MB /{' '}
-                  {(total / 1024 / 1024).toFixed(2)} MB)
-                </div>
-              </div>
-            ),
-            duration: 0,
-            placement: 'topRight',
-          });
-        }
-      });
+      // 获取临时下载链接
+      const downloadUrl = await fileApi.downloadFileSimple(file.id);
 
-      // 下载完成，显示成功通知（使用 hooks API）
-      api.success({
-        key: notificationKey,
-        message: '下载完成',
-        description: `文件 ${file.name} 已成功下载`,
-        duration: 3,
-        placement: 'topRight',
-      });
+      // 在新标签页中打开下载链接
+      window.open(downloadUrl, '_blank');
+
+      message.success('下载链接已打开，请在新标签页中查看下载状态');
     } catch (error) {
       void error;
       message.error('下载失败');
-
-      // 清理可能存在的下载进度通知 - 使用 hooks API
-      api.destroy(notificationKey);
     }
   };
 
@@ -289,8 +243,6 @@ function FileManagement() {
 
   return (
     <div>
-      {/* Notification Context Holder - 必须添加这个才能显示通知 */}
-      {contextHolder}
       {/* 主内容区域 */}
       <div>
         {/* 面包屑导航 */}

@@ -1,13 +1,17 @@
 import * as fs from 'fs/promises';
 import { Context } from 'koa';
 import * as path from 'path';
-import { Not } from 'typeorm';
 
 import { AppDataSource } from '../config/database';
 import { FILE_STATUS } from '../constants/files';
 import { DEFAULT_PAGE_SIZE } from '../constants/page';
 import { File } from '../entities/File';
+import { FileDeleteService } from '../services/FileDeleteService';
+import { FileNameService } from '../services/FileNameService';
+import { FileQueryHelper } from '../services/FileQueryHelper';
+import { FileRecursiveService } from '../services/FileRecursiveService';
 import { UserStorageService } from '../services/UserStorageService';
+import { generateDownloadToken, verifyDownloadToken } from '../utils/downloadToken';
 import logger from '../utils/logger';
 
 export class FileController {
@@ -15,81 +19,6 @@ export class FileController {
 
   constructor() {
     this.userStorageService = new UserStorageService();
-  }
-
-  /**
-   * 生成唯一的文件名，如果存在重名则添加 (数字) 后缀
-   */
-  private async generateUniqueFileName(
-    originalName: string,
-    parentId: string | null,
-    userId: string,
-    excludeId?: string
-  ): Promise<string> {
-    const fileRepository = AppDataSource.getRepository(File);
-
-    // 构建查询条件
-    let queryBuilder = fileRepository
-      .createQueryBuilder('file')
-      .where('file.name = :name', { name: originalName })
-      .andWhere('file.user_id = :userId', { userId })
-      .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE });
-
-    if (parentId) {
-      queryBuilder = queryBuilder.andWhere('file.parent_id = :parentId', { parentId });
-    } else {
-      queryBuilder = queryBuilder.andWhere('file.parent_id IS NULL');
-    }
-
-    // 如果提供了 excludeId，排除该 ID
-    if (excludeId) {
-      queryBuilder = queryBuilder.andWhere('file.id != :excludeId', { excludeId });
-    }
-
-    // 检查原名是否可用
-    const existingFile = await queryBuilder.getOne();
-
-    if (!existingFile) {
-      return originalName;
-    }
-
-    // 如果存在重名，生成带数字后缀的文件名
-    const nameWithoutExt = originalName.includes('.')
-      ? originalName.substring(0, originalName.lastIndexOf('.'))
-      : originalName;
-    const extension = originalName.includes('.')
-      ? originalName.substring(originalName.lastIndexOf('.'))
-      : '';
-
-    let counter = 1;
-    let newName: string;
-
-    do {
-      newName = `${nameWithoutExt}(${counter})${extension}`;
-
-      const conflictWhereCondition: any = {
-        name: newName,
-        parent_id: parentId,
-        user_id: userId,
-        status: FILE_STATUS.ACTIVE,
-      };
-
-      if (excludeId) {
-        conflictWhereCondition.id = Not(excludeId);
-      }
-
-      const conflictFile = await fileRepository.findOne({
-        where: conflictWhereCondition,
-      });
-
-      if (!conflictFile) {
-        break;
-      }
-
-      counter++;
-    } while (counter < 1000); // 防止无限循环，最多尝试1000次
-
-    return newName;
   }
 
   /**
@@ -113,10 +42,7 @@ export class FileController {
       } = ctx.query;
 
       const fileRepository = AppDataSource.getRepository(File);
-      const queryBuilder = fileRepository
-        .createQueryBuilder('file')
-        .where('file.user_id = :userId', { userId })
-        .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE });
+      const queryBuilder = FileQueryHelper.getValidFilesQueryBuilder(userId);
 
       // 父目录筛选
       if (parentId) {
@@ -239,8 +165,7 @@ export class FileController {
 
           if (permanent || file.status === FILE_STATUS.TRASH) {
             // 永久删除
-            await this.permanentlyDeleteFile(file);
-            await fileRepository.remove(file);
+            await FileDeleteService.permanentlyDeleteFile(file, 'FileController');
 
             // 如果是文件（非文件夹），计算大小变化
             if (!file.is_folder && file.size) {
@@ -254,8 +179,16 @@ export class FileController {
               size: parseInt(file.size?.toString() || '0'),
             });
           } else {
-            // 移到回收站
+            // 移到回收站 - 也需要删除相关分享记录，因为用户期望删除文件后分享失效
+            await FileDeleteService.deleteRelatedShares(file.id);
+
+            // 如果是文件夹，递归标记所有子项为删除状态
+            if (file.is_folder) {
+              await FileRecursiveService.recursiveMarkAsDeleted(file.id, userId);
+            }
+
             file.status = FILE_STATUS.TRASH;
+            file.deleted_at = new Date();
             file.updated_at = new Date();
             await fileRepository.save(file);
 
@@ -297,34 +230,6 @@ export class FileController {
   }
 
   /**
-   * 永久删除文件的物理文件
-   */
-  private async permanentlyDeleteFile(file: File) {
-    try {
-      if (!file.is_folder && file.path) {
-        // 检查是否有其他用户引用同一个物理文件
-        const fileRepository = AppDataSource.getRepository(File);
-        const otherReferences = await fileRepository.count({
-          where: {
-            md5: file.md5,
-            status: FILE_STATUS.ACTIVE,
-          },
-        });
-
-        // 如果没有其他用户引用，则删除物理文件
-        if (otherReferences <= 1) {
-          await fs.unlink(file.path);
-          logger.info(`物理文件已删除: ${file.path}`);
-        } else {
-          logger.info(`物理文件被其他用户引用，保留文件: ${file.path}`);
-        }
-      }
-    } catch (error) {
-      logger.error(`删除物理文件失败: ${file.path}`, error);
-    }
-  }
-
-  /**
    * 创建文件夹
    */
   async createFolder(ctx: Context) {
@@ -351,7 +256,11 @@ export class FileController {
       const fileRepository = AppDataSource.getRepository(File);
 
       // 生成唯一的文件夹名称（如果重名则自动添加数字后缀）
-      const uniqueName = await this.generateUniqueFileName(name.trim(), parentId, userId);
+      const uniqueName = await FileNameService.generateUniqueFileName(
+        name.trim(),
+        parentId,
+        userId
+      );
 
       // 构建路径
       let folderPath = '/';
@@ -446,7 +355,7 @@ export class FileController {
       }
 
       // 生成唯一的文件名称（如果重名则自动添加数字后缀）
-      const uniqueName = await this.generateUniqueFileName(
+      const uniqueName = await FileNameService.generateUniqueFileName(
         name.trim(),
         file.parent_id,
         userId,
@@ -490,12 +399,43 @@ export class FileController {
    */
   async downloadFile(ctx: Context) {
     try {
-      const userId = ctx.state.auth?.sub;
-      if (!userId) {
-        throw new Error('未认证的用户');
+      const { id } = ctx.params;
+      const { token } = ctx.query;
+
+      let userId: string;
+
+      // 如果有token，使用token验证
+      if (token) {
+        try {
+          const tokenPayload = verifyDownloadToken(token as string);
+          logger.info(`File token验证成功: ${JSON.stringify(tokenPayload)}`);
+
+          if (tokenPayload.type !== 'file' || tokenPayload.fileId !== id) {
+            logger.error(
+              `File token验证失败: type=${tokenPayload.type}, fileId=${tokenPayload.fileId}, expected=${id}`
+            );
+            ctx.status = 401;
+            ctx.body = { code: 401, message: '无效的下载token' };
+            return;
+          }
+
+          userId = tokenPayload.userId!;
+        } catch (error) {
+          logger.error(
+            `File token验证失败: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+          ctx.status = 401;
+          ctx.body = { code: 401, message: '无效的下载token' };
+          return;
+        }
+      } else {
+        // 使用常规认证
+        userId = ctx.state.auth?.sub;
+        if (!userId) {
+          throw new Error('未认证的用户');
+        }
       }
 
-      const { id } = ctx.params;
       const fileRepository = AppDataSource.getRepository(File);
 
       const file = await fileRepository.findOne({
@@ -638,6 +578,81 @@ export class FileController {
       ctx.body = {
         code: 500,
         message: '获取文件夹路径失败',
+      };
+    }
+  }
+
+  /**
+   * 生成临时下载链接
+   */
+  async generateDownloadLink(ctx: Context) {
+    try {
+      const userId = ctx.state.auth?.sub;
+      if (!userId) {
+        ctx.status = 401;
+        ctx.body = {
+          code: 401,
+          message: '未授权的访问',
+        };
+        return;
+      }
+
+      const { id } = ctx.params;
+      const fileRepository = AppDataSource.getRepository(File);
+
+      const file = await fileRepository.findOne({
+        where: { id, user_id: userId, status: FILE_STATUS.ACTIVE },
+      });
+
+      if (!file) {
+        ctx.status = 404;
+        ctx.body = {
+          code: 404,
+          message: '文件不存在',
+        };
+        return;
+      }
+
+      if (file.is_folder) {
+        ctx.status = 400;
+        ctx.body = {
+          code: 400,
+          message: '不能下载文件夹',
+        };
+        return;
+      }
+
+      // 生成临时下载token
+      const downloadToken = generateDownloadToken({
+        type: 'file',
+        fileId: id,
+        userId: userId,
+      });
+
+      // 构建完整的下载链接
+      const port = process.env.PORT || 3000;
+      const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+      const downloadUrl = `${baseUrl}/api/files/${id}/download?token=${downloadToken}`;
+
+      ctx.body = {
+        code: 200,
+        message: 'success',
+        data: {
+          downloadUrl,
+          token: downloadToken,
+          expiresIn: 3600, // 1小时，以秒为单位
+          fileName: file.name,
+          fileSize: file.size,
+        },
+      };
+
+      logger.info(`生成文件临时下载链接成功: ${file.name}`, { userId, fileId: file.id });
+    } catch (error) {
+      logger.error('生成文件临时下载链接失败:', error);
+      ctx.status = 500;
+      ctx.body = {
+        code: 500,
+        message: '服务器内部错误',
       };
     }
   }

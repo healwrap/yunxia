@@ -1,7 +1,10 @@
-import { Form, Input, message, Modal } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { Form, Input, Modal } from 'antd';
+import { useEffect, useState } from 'react';
 
-import { fileApi, FileItem } from '@/lib/api/file';
+import { fileApi } from '@/lib/api/file';
+import { message } from '@/lib/staticMethodsStore';
+
+import { FileItem } from './FileList';
 
 interface RenameModalProps {
   visible: boolean;

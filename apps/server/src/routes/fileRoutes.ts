@@ -21,7 +21,14 @@ router.post('/folders', requireAuth(), fileController.createFolder.bind(fileCont
 // 获取文件夹路径
 router.get('/:id/path', requireAuth(), fileController.getFolderPath.bind(fileController));
 
-// 下载文件
-router.get('/:id/download', requireAuth(), fileController.downloadFile.bind(fileController));
+// 生成临时下载链接（需要认证）
+router.post(
+  '/:id/download-link',
+  requireAuth(),
+  fileController.generateDownloadLink.bind(fileController)
+);
+
+// 下载文件（支持token或常规认证）
+router.get('/:id/download', fileController.downloadFile.bind(fileController));
 
 export default router;

@@ -1,5 +1,6 @@
-import { message } from 'antd';
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+import { message } from '@/lib/staticMethodsStore';
 
 // 创建一个 axios 实例
 const instance: AxiosInstance = axios.create({

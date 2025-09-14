@@ -15,6 +15,7 @@ import { userStorageInitMiddleware } from './src/middlewares/userStorageInit';
 import fileRoutes from './src/routes/fileRoutes';
 import shareRoutes from './src/routes/shareRoutes';
 import storageRoutes from './src/routes/storageRoutes';
+import trashRoutes from './src/routes/trashRoutes';
 import uploadRoutes from './src/routes/uploadRoutes';
 import { initializeStorage } from './src/utils/file';
 import logger from './src/utils/logger';
@@ -83,6 +84,9 @@ app.use(fileRoutes.allowedMethods());
 
 app.use(shareRoutes.routes());
 app.use(shareRoutes.allowedMethods());
+
+app.use(trashRoutes.routes());
+app.use(trashRoutes.allowedMethods());
 
 app.use(storageRoutes.routes());
 app.use(storageRoutes.allowedMethods());

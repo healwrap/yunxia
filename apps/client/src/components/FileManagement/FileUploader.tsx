@@ -1,7 +1,9 @@
 import { CloudUploadOutlined } from '@ant-design/icons';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import type { RcFile } from 'antd/es/upload';
 import React, { useEffect, useRef, useState } from 'react';
+
+import { message } from '@/lib/staticMethodsStore';
 
 import { useUploadStore } from '../../store/uploadStore';
 import { calculateFileHash } from '../../utils/fileUpload';

@@ -14,6 +14,9 @@ shareRouter.get('/api/shares/list', requireAuth(), ShareController.getShareList)
 // 获取分享内容（不需要认证）
 shareRouter.get('/api/shares/:shareId', ShareController.getShare);
 
+// 生成临时下载链接（不需要认证）
+shareRouter.post('/api/shares/:shareId/download-link', ShareController.generateDownloadLink);
+
 // 下载分享文件（不需要认证）
 shareRouter.get('/api/shares/:shareId/download', ShareController.downloadShare);
 

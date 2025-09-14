@@ -58,6 +58,10 @@ export default createBrowserRouter([
         path: 'share',
         element: withSuspense(lazy(() => import('@/pages/share/index.tsx'))),
       },
+      {
+        path: 'trash',
+        element: withSuspense(lazy(() => import('@/pages/trash/index.tsx'))),
+      },
     ],
   },
   {
