@@ -92,17 +92,20 @@ export class UserStorageService {
 
   /**
    * 重新计算用户已使用空间
-   * 基于数据库中的文件记录重新计算
+   * 基于数据库中的文件记录重新计算（包括所有状态的文件，体现逻辑占用空间）
    * @param userId 用户ID
    */
   async recalculateUsedSpace(userId: string): Promise<UserStorage> {
-    // 计算用户所有非文件夹且状态为active的文件总大小
+    // 计算用户所有非文件夹文件的总大小（包括ACTIVE和TRASH状态）
+    // 这样计算的是逻辑占用空间，而不是物理占用空间
     const result = await this.fileRepository
       .createQueryBuilder('file')
       .select('SUM(file.size)', 'total_size')
       .where('file.user_id = :userId', { userId })
       .andWhere('file.is_folder = :isFolder', { isFolder: false })
-      .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE })
+      .andWhere('file.status IN (:...statuses)', {
+        statuses: [FILE_STATUS.ACTIVE, FILE_STATUS.TRASH],
+      })
       .getRawOne();
 
     const totalSize = result.total_size ? BigInt(result.total_size) : 0n;
@@ -127,13 +130,15 @@ export class UserStorageService {
       throw new Error('用户存储信息不存在');
     }
 
-    // 获取文件类型统计
+    // 获取文件类型统计（包括所有状态的文件）
     const fileTypeStats = await this.fileRepository
       .createQueryBuilder('file')
       .select(['file.type as type', 'COUNT(*) as count', 'SUM(file.size) as size'])
       .where('file.user_id = :userId', { userId })
       .andWhere('file.is_folder = :isFolder', { isFolder: false })
-      .andWhere('file.status = :status', { status: FILE_STATUS.ACTIVE })
+      .andWhere('file.status IN (:...statuses)', {
+        statuses: [FILE_STATUS.ACTIVE, FILE_STATUS.TRASH],
+      })
       .groupBy('file.type')
       .getRawMany();
 

@@ -186,15 +186,31 @@ export class TrashController {
 
       for (const file of filesToDelete) {
         try {
+          let childDeletedCount = 0;
+          let childTotalSize = 0n;
+
+          // 如果是文件夹，先递归删除其子项
+          if (file.is_folder) {
+            const result = await FileRecursiveService.recursivePermanentlyDelete(file.id, userId);
+            childDeletedCount = result.deletedCount;
+            childTotalSize = result.totalSize;
+          }
+
+          // 删除文件本身
           await FileDeleteService.permanentlyDeleteFile(file, 'TrashController');
+
           if (!file.is_folder && file.size) {
             totalDeletedSize += BigInt(file.size);
           }
+          totalDeletedSize += childTotalSize;
+
           deletedItems.push({
             id: file.id,
             name: file.name,
             type: file.is_folder ? 'folder' : 'file',
           });
+
+          logger.info(`彻底删除文件: ${file.name}, 包含 ${childDeletedCount} 个子项`);
         } catch (error) {
           logger.error(`永久删除文件失败: ${file.id}`, error);
         }

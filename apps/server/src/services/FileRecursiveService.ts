@@ -2,6 +2,7 @@ import { AppDataSource } from '../config/database';
 import { FILE_STATUS } from '../constants/files';
 import { File } from '../entities/File';
 import logger from '../utils/logger';
+import { FileDeleteService } from './FileDeleteService';
 
 /**
  * 文件递归操作服务
@@ -125,5 +126,78 @@ export class FileRecursiveService {
     }
 
     return restoredCount;
+  }
+
+  /**
+   * 递归彻底删除文件夹下的所有子项（包括物理文件和数据库记录）
+   */
+  static async recursivePermanentlyDelete(
+    fileId: string,
+    userId: string
+  ): Promise<{ deletedCount: number; totalSize: bigint }> {
+    const fileRepository = AppDataSource.getRepository(File);
+
+    // 获取所有子项（包括已在回收站的）
+    const children = await fileRepository.find({
+      where: {
+        parent_id: fileId,
+        user_id: userId,
+        status: FILE_STATUS.TRASH,
+      },
+    });
+
+    let deletedCount = 0;
+    let totalSize = 0n;
+
+    for (const child of children) {
+      try {
+        // 如果是文件夹，先递归删除其子项
+        if (child.is_folder) {
+          const { deletedCount: childDeletedCount, totalSize: childTotalSize } =
+            await this.recursivePermanentlyDelete(child.id, userId);
+          deletedCount += childDeletedCount;
+          totalSize += childTotalSize;
+        }
+
+        // 彻底删除当前子项
+        await FileDeleteService.permanentlyDeleteFile(child, 'FileRecursiveService');
+
+        if (!child.is_folder && child.size) {
+          totalSize += BigInt(child.size);
+        }
+
+        deletedCount++;
+        logger.info(`递归彻底删除子项: ${child.name} (${child.id})`);
+      } catch (error) {
+        logger.error(`递归彻底删除子项失败: ${child.id}`, error);
+      }
+    }
+
+    return { deletedCount, totalSize };
+  }
+
+  /**
+   * 递归删除文件夹下所有子项的分享记录
+   */
+  static async recursiveDeleteShares(fileId: string, userId: string): Promise<void> {
+    const fileRepository = AppDataSource.getRepository(File);
+
+    // 获取所有子项（不考虑状态，因为我们要删除所有相关的分享记录）
+    const children = await fileRepository.find({
+      where: {
+        parent_id: fileId,
+        user_id: userId,
+      },
+    });
+
+    for (const child of children) {
+      logger.info(`递归删除分享记录: ${child.name} (${child.id})`);
+      // 如果子项是文件夹，递归处理其子项
+      if (child.is_folder) {
+        await this.recursiveDeleteShares(child.id, userId);
+      }
+      // 删除子项的分享记录
+      await FileDeleteService.deleteRelatedShares(child.id);
+    }
   }
 }

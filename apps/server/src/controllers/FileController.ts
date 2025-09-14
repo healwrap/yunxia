@@ -182,8 +182,9 @@ export class FileController {
             // 移到回收站 - 也需要删除相关分享记录，因为用户期望删除文件后分享失效
             await FileDeleteService.deleteRelatedShares(file.id);
 
-            // 如果是文件夹，递归标记所有子项为删除状态
+            // 如果是文件夹，递归删除所有子项的分享记录和标记删除
             if (file.is_folder) {
+              await FileRecursiveService.recursiveDeleteShares(file.id, userId);
               await FileRecursiveService.recursiveMarkAsDeleted(file.id, userId);
             }
 
