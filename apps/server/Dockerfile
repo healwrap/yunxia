@@ -14,6 +14,8 @@ COPY package.json ./
 
 # 安装依赖（不使用 lockfile）
 RUN pnpm install --no-frozen-lockfile
+# 全局安装 TypeScript，这样 tsc 命令就可用
+RUN npm install -g typescript
 
 # 构建阶段
 FROM base AS builder
