@@ -24,20 +24,28 @@ RUN pnpm build
 FROM node:20-alpine AS production
 WORKDIR /app
 
+# 安装 pnpm
+RUN npm install -g pnpm
+
 # 创建必要的目录
 RUN mkdir -p /app/uploads/temp /app/uploads/users /app/logs
 
-# 从构建阶段复制构建好的文件
-COPY --from=builder /app/apps/server/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-# 注意：.env.local 文件会在部署时通过环境变量创建
+# 复制完整的项目结构以支持 monorepo
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/apps/server ./apps/server
+COPY --from=builder /app/packages ./packages
+
+# 安装所有依赖（包括 devDependencies 以支持 nodemon 和 tsx）
+RUN pnpm install --frozen-lockfile
 
 # 设置环境变量
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3005
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 3005
 
-# 启动应用
-CMD ["node", "dist/app.js"]
+# 使用 nodemon 启动应用（类似开发环境）
+CMD ["pnpm", "--filter", "@yunxia/server", "dev"]

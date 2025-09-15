@@ -1,4 +1,3 @@
-# 修复 lightningcss 兼容性问题
 FROM node:20-alpine AS base
 
 # 设置工作目录
@@ -10,6 +9,14 @@ RUN npm install -g pnpm
 # 构建阶段
 FROM base AS builder
 WORKDIR /app
+
+# 接收构建参数
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_API_URL
+
+# 设置环境变量
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_API_URL=$VITE_API_URL
 
 # 复制整个项目
 COPY . .

@@ -30,6 +30,9 @@ jobs:
           file: ./apps/client/Dockerfile
           push: true
           tags: registry.cn-hangzhou.aliyuncs.com/pepedd/yunxia:client-latest
+          build-args: |
+            VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+            VITE_API_URL=/api
 
       - name: Build and push Server
         uses: docker/build-push-action@v5

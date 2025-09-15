@@ -7,7 +7,10 @@ import { File } from '../entities/File';
 import { Share } from '../entities/Share';
 import { UserStorage } from '../entities/UserStorage';
 
-dotenv.config();
+// 只在非生产环境加载 dotenv
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
