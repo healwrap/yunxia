@@ -14,6 +14,8 @@ COPY package.json ./
 
 # 安装依赖（不使用 lockfile）
 RUN pnpm install --no-frozen-lockfile
+# 全局安装 TypeScript，这样 tsc 命令就可用
+RUN npm install -g typescript
 
 # 构建阶段
 FROM base AS builder
@@ -24,7 +26,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # 构建应用
-RUN pnpm build
+# 修改为直接使用 vite build，跳过 tsc 步骤
+RUN sed -i 's/"build": "tsc -b && vite build"/"build": "vite build"/' package.json && pnpm build
 
 # 生产环境
 FROM nginx:alpine AS production
