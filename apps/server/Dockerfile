@@ -28,7 +28,7 @@ WORKDIR /app
 RUN mkdir -p /app/uploads/temp /app/uploads/users /app/logs
 
 # 从构建阶段复制构建好的文件
-COPY --from=builder /app/apps/server/dist .
+COPY --from=builder /app/apps/server/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 # 注意：.env.local 文件会在部署时通过环境变量创建
 
@@ -40,4 +40,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # 启动应用
-CMD ["node", "app.js"]
+CMD ["node", "dist/app.js"]
