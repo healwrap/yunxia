@@ -1,0 +1,85 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Aliyun Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+
+      - name: Build and push Client
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/client
+          push: true
+          tags: registry.cn-hangzhou.aliyuncs.com/pepedd/yunxia:client-latest
+
+      - name: Build and push Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/server
+          push: true
+          tags: registry.cn-hangzhou.aliyuncs.com/pepedd/yunxia:server-latest
+
+  deploy:
+    name: Deploy to Server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to remote server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: 'docker-compose.yml'
+          target: '/opt/yunxia'
+
+      - name: Deploy to remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/yunxia
+
+            # 创建必要的目录
+            mkdir -p /opt/yunxia/uploads/temp /opt/yunxia/uploads/users /opt/yunxia/logs
+
+            # 确保目录权限正确
+            chmod -R 777 /opt/yunxia/uploads /opt/yunxia/logs
+
+            # 设置环境变量
+            echo "CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}" > .env
+            echo "VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" >> .env
+            echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
+            echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+
+            # 登录阿里云容器服务
+            docker login --username=${{ secrets.ALIYUN_USERNAME }} registry.cn-hangzhou.aliyuncs.com --password=${{ secrets.ALIYUN_PASSWORD }}
+
+            docker-compose pull
+            docker-compose up -d
+            docker system prune -af
