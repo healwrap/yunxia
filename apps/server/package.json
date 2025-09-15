@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --ext ts --exec 'tsx' app.ts",
-    "build": "tsc -b && mkdir -p dist && cp -r ./src ./uploads ./dist && cp app.js ./dist/ || true"
+    "build": "tsc -b && mkdir -p dist && cp -r ./src ./uploads ./dist"
   },
   "keywords": [],
   "author": "",

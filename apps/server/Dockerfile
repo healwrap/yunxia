@@ -1,3 +1,4 @@
+# 统一使用标准镜像
 FROM node:20-alpine AS base
 
 # 设置工作目录
@@ -6,26 +7,17 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 复制 package.json 和 pnpm-lock.yaml
-FROM base AS deps
-WORKDIR /app
-
-COPY package.json ./
-
-# 安装依赖（不使用 lockfile）
-RUN pnpm install --no-frozen-lockfile
-# 全局安装 TypeScript，这样 tsc 命令就可用
-RUN npm install -g typescript
-
 # 构建阶段
 FROM base AS builder
 WORKDIR /app
 
-# 复制项目文件和依赖
-COPY --from=deps /app/node_modules ./node_modules
+# 复制整个项目
 COPY . .
 
-# 构建应用
+# 安装所有依赖
+RUN pnpm install
+
+# 构建整个项目
 RUN pnpm build
 
 # 生产环境
@@ -36,7 +28,7 @@ WORKDIR /app
 RUN mkdir -p /app/uploads/temp /app/uploads/users /app/logs
 
 # 从构建阶段复制构建好的文件
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/apps/server/dist .
 COPY --from=builder /app/node_modules ./node_modules
 # 注意：.env.local 文件会在部署时通过环境变量创建
 
@@ -48,4 +40,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # 启动应用
-CMD ["node", "dist/app.js"]
+CMD ["node", "app.js"]

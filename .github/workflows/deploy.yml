@@ -26,14 +26,16 @@ jobs:
       - name: Build and push Client
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/client
+          context: .
+          file: ./apps/client/Dockerfile
           push: true
           tags: registry.cn-hangzhou.aliyuncs.com/pepedd/yunxia:client-latest
 
       - name: Build and push Server
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/server
+          context: .
+          file: ./apps/server/Dockerfile
           push: true
           tags: registry.cn-hangzhou.aliyuncs.com/pepedd/yunxia:server-latest
 
