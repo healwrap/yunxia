@@ -1,5 +1,5 @@
 import { FolderAddOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Breadcrumb, Button, Empty, message, notification, Progress, Space } from 'antd';
+import { Breadcrumb, Button, Empty, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import FileList from '@/components/FileManagement/FileList';
 import FileUploader from '@/components/FileManagement/FileUploader';
 import RenameModal from '@/components/FileManagement/RenameModal';
 import { ShareModal } from '@/components/Share/ShareModal';
+import { message } from '@/lib/staticMethodsStore';
 
 import { fileApi, FileItem } from '../../lib/api/file';
 import { useAuthToken } from '../../lib/auth';
@@ -39,16 +40,12 @@ function FileManagement() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [currentFile, setCurrentFile] = useState<FileItem | null>(null);
 
-  // 使用 notification hooks（推荐方式）
-  const [api, contextHolder] = notification.useNotification();
-
   const { updateRequestToken } = useAuthToken();
 
   // 加载文件列表
   const loadFiles = async (folderId?: string, page: number = 1, pageSize: number = 20) => {
     try {
       setLoading(true);
-      await updateRequestToken();
 
       const response = await fileApi.getFiles({
         parentId: folderId,
@@ -76,7 +73,6 @@ function FileManagement() {
   const loadPath = async (folderId?: string) => {
     try {
       if (folderId) {
-        await updateRequestToken();
         const response = await fileApi.getFolderPath(folderId);
         setFolderPath(response.data.path);
       } else {
@@ -95,51 +91,53 @@ function FileManagement() {
     await Promise.all([loadFiles(folderId, page, pageSize), loadPath(folderId)]);
   };
 
+  const loadInitialData = async () => {
+    setCurrentFolderId(folderId);
+
+    try {
+      setLoading(true);
+
+      // 加载文件列表
+      const filesResponse = await fileApi.getFiles({
+        parentId: folderId,
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+      });
+
+      setFiles(filesResponse.data.files || []);
+      setPagination(filesResponse.data.pagination);
+
+      // 加载路径信息
+      if (folderId) {
+        const pathResponse = await fileApi.getFolderPath(folderId);
+        setFolderPath(pathResponse.data.path);
+      } else {
+        setFolderPath([{ id: 'root', name: '根目录' }]);
+      }
+    } catch (error) {
+      void error;
+      setFiles([]);
+      setPagination({
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        total: 0,
+        totalPages: 0,
+      });
+      setFolderPath([{ id: 'root', name: '根目录' }]);
+      if (folderId) {
+        navigate('/bench/dashboard');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 当URL参数改变时，加载数据
   useEffect(() => {
-    const loadInitialData = async () => {
-      setCurrentFolderId(folderId);
-
-      try {
-        setLoading(true);
-        await updateRequestToken();
-
-        // 加载文件列表
-        const filesResponse = await fileApi.getFiles({
-          parentId: folderId,
-          page: 1,
-          pageSize: DEFAULT_PAGE_SIZE,
-        });
-
-        setFiles(filesResponse.data.files || []);
-        setPagination(filesResponse.data.pagination);
-
-        // 加载路径信息
-        if (folderId) {
-          const pathResponse = await fileApi.getFolderPath(folderId);
-          setFolderPath(pathResponse.data.path);
-        } else {
-          setFolderPath([{ id: 'root', name: '根目录' }]);
-        }
-      } catch (error) {
-        void error;
-        setFiles([]);
-        setPagination({
-          page: 1,
-          pageSize: DEFAULT_PAGE_SIZE,
-          total: 0,
-          totalPages: 0,
-        });
-        setFolderPath([{ id: 'root', name: '根目录' }]);
-        if (folderId) {
-          navigate('/bench/dashboard');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialData();
+    (async () => {
+      await updateRequestToken();
+      await loadInitialData();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderId]);
 
@@ -178,63 +176,17 @@ function FileManagement() {
 
   // 处理文件下载
   const handleDownload = async (file: FileItem) => {
-    // 在函数开始就定义 notificationKey，确保在整个函数中都可以访问
-    const notificationKey = `download-${file.id}-${Date.now()}`;
-
     try {
-      await updateRequestToken();
-      // 显示下载开始通知（使用 hooks API）
-      api.info({
-        key: notificationKey,
-        message: '文件下载中',
-        description: (
-          <div>
-            <div style={{ marginBottom: 8 }}>{file.name}</div>
-            <Progress percent={0} size="small" />
-          </div>
-        ),
-        duration: 0, // 不自动关闭
-        placement: 'topRight',
-      });
+      // 获取临时下载链接
+      const downloadUrl = await fileApi.downloadFileSimple(file.id);
 
-      // 开始下载，传入进度回调
-      await fileApi.downloadFile(file.id, progressEvent => {
-        const { loaded, total, percentage } = progressEvent;
-        if (total && total > 0) {
-          // 更新下载进度（使用 hooks API）
-          api.info({
-            key: notificationKey,
-            message: '文件下载中',
-            description: (
-              <div>
-                <div style={{ marginBottom: 8 }}>{file.name}</div>
-                <Progress percent={percentage} size="small" />
-                <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
-                  {percentage}% ({(loaded / 1024 / 1024).toFixed(2)} MB /{' '}
-                  {(total / 1024 / 1024).toFixed(2)} MB)
-                </div>
-              </div>
-            ),
-            duration: 0,
-            placement: 'topRight',
-          });
-        }
-      });
+      // 在新标签页中打开下载链接
+      window.open(downloadUrl, '_blank');
 
-      // 下载完成，显示成功通知（使用 hooks API）
-      api.success({
-        key: notificationKey,
-        message: '下载完成',
-        description: `文件 ${file.name} 已成功下载`,
-        duration: 3,
-        placement: 'topRight',
-      });
+      message.success('下载链接已打开，请在新标签页中查看下载状态');
     } catch (error) {
       void error;
       message.error('下载失败');
-
-      // 清理可能存在的下载进度通知 - 使用 hooks API
-      api.destroy(notificationKey);
     }
   };
 
@@ -247,7 +199,6 @@ function FileManagement() {
   // 处理文件删除
   const handleDelete = async (file: FileItem) => {
     try {
-      await updateRequestToken();
       await fileApi.deleteFiles({ ids: [file.id] });
       message.success('删除成功');
       loadData(currentFolderId, pagination.page, pagination.pageSize);
@@ -289,8 +240,6 @@ function FileManagement() {
 
   return (
     <div>
-      {/* Notification Context Holder - 必须添加这个才能显示通知 */}
-      {contextHolder}
       {/* 主内容区域 */}
       <div>
         {/* 面包屑导航 */}

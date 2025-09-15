@@ -1,17 +1,8 @@
 import { CopyOutlined, LinkOutlined, LockOutlined } from '@ant-design/icons';
-import {
-  Button,
-  DatePicker,
-  Divider,
-  Form,
-  Input,
-  message,
-  Modal,
-  Space,
-  Switch,
-  Typography,
-} from 'antd';
+import { Button, DatePicker, Divider, Form, Input, Modal, Space, Switch, Typography } from 'antd';
 import { useState } from 'react';
+
+import { message } from '@/lib/staticMethodsStore';
 
 import { createShare, CreateShareParams, generateShareUrl } from '../../lib/api/share';
 import dayjs from '../../lib/dayjs';

@@ -7,9 +7,11 @@ import {
   FolderOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons';
-import { Button, Popover, Space, Table, Tooltip, Typography } from 'antd';
+import { Button, Space, Table, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React from 'react';
+
+import { modal } from '@/lib/staticMethodsStore';
 
 import { formatFileSize } from '../../utils/format';
 
@@ -67,38 +69,29 @@ const FileList: React.FC<FileListProps> = ({
     return <FileOutlined className="text-gray-500" />;
   };
 
-  // 删除确认Popover内容
-  const getDeletePopoverContent = (record: FileItem) => (
-    <div className="p-2">
-      <div className="mb-3 text-sm">
-        确定要删除 "{record.name}" 吗？
-        {record.isFolder && <div className="text-gray-500">文件夹内的所有内容也将被删除</div>}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button
-          size="small"
-          onClick={() => {
-            // 通过点击其他地方关闭popover
-            document.body.click();
-          }}
-        >
-          取消
-        </Button>
-        <Button
-          size="small"
-          type="primary"
-          danger
-          onClick={() => {
-            onDelete?.(record);
-            // 关闭popover
-            document.body.click();
-          }}
-        >
-          删除
-        </Button>
-      </div>
-    </div>
-  );
+  // 删除确认处理函数
+  const handleDeleteConfirm = (record: FileItem) => {
+    modal.confirm({
+      title: '确认删除',
+      content: (
+        <div>
+          <div>确定要删除 "{record.name}" 吗？</div>
+          {record.isFolder && (
+            <div className="text-gray-500 mt-1">文件夹内的所有内容也将被删除</div>
+          )}
+        </div>
+      ),
+      okText: '删除',
+      okType: 'danger',
+      okButtonProps: {
+        type: 'primary',
+      },
+      cancelText: '取消',
+      onOk() {
+        onDelete?.(record);
+      },
+    });
+  };
 
   const columns: ColumnsType<FileItem> = [
     {
@@ -174,16 +167,15 @@ const FileList: React.FC<FileListProps> = ({
               onClick={() => onRename?.(record)}
             />
           </Tooltip>
-          <Popover
-            content={getDeletePopoverContent(record)}
-            title="确认删除"
-            trigger="click"
-            placement="topRight"
-          >
-            <Tooltip title="删除">
-              <Button type="text" danger icon={<DeleteOutlined />} size="small" />
-            </Tooltip>
-          </Popover>
+          <Tooltip title="删除">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+              onClick={() => handleDeleteConfirm(record)}
+            />
+          </Tooltip>
         </Space>
       ),
       width: 140,

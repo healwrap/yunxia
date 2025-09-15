@@ -63,6 +63,14 @@ export interface ShareListResponse {
   };
 }
 
+export interface DownloadLinkResponse {
+  downloadUrl: string;
+  token: string;
+  expiresIn: number; // 秒
+  fileName: string;
+  fileSize: number;
+}
+
 // 创建分享
 export const createShare = (params: CreateShareParams): Promise<Response<ShareInfo>> => {
   return request.post('/shares', params);
@@ -74,13 +82,19 @@ export const getShare = (shareId: string, password?: string): Promise<Response<S
   return request.get(`/shares/${shareId}`, { params });
 };
 
-// 下载分享文件
-export const downloadShare = (shareId: string, password?: string): Promise<Blob> => {
+// 生成临时下载链接
+export const generateDownloadLink = (
+  shareId: string,
+  password?: string
+): Promise<Response<DownloadLinkResponse>> => {
   const params = password ? { password } : {};
-  return request.get(`/shares/${shareId}/download`, {
-    params,
-    responseType: 'blob',
-  });
+  return request.post(`/shares/${shareId}/download-link`, {}, { params });
+};
+
+// 简化版下载分享文件（直接打开下载链接）
+export const downloadShareFile = async (shareId: string, password?: string): Promise<string> => {
+  const response = await generateDownloadLink(shareId, password);
+  return response.data.downloadUrl;
 };
 
 // 更新分享设置

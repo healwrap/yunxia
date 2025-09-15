@@ -1,5 +1,7 @@
-import { Button, DatePicker, Form, Input, message, Modal, Switch, Typography } from 'antd';
+import { Button, DatePicker, Form, Input, Modal, Switch, Typography } from 'antd';
 import { useEffect, useState } from 'react';
+
+import { message } from '@/lib/staticMethodsStore';
 
 import { ShareListItem, updateShare } from '../../lib/api/share';
 import dayjs from '../../lib/dayjs';

@@ -1,9 +1,11 @@
 import { DownloadOutlined, EyeOutlined, LockOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, message, Row, Space, Spin, Typography } from 'antd';
+import { Button, Card, Col, Form, Input, Row, Space, Spin, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-import { downloadShare, getShare, type ShareDetail } from '../../lib/api/share';
+import { message } from '@/lib/staticMethodsStore';
+
+import { downloadShareFile, getShare, type ShareDetail } from '../../lib/api/share';
 import dayjs from '../../lib/dayjs';
 import { formatFileSize } from '../../utils/format';
 
@@ -66,31 +68,27 @@ export default function ShareAccessPage() {
     try {
       setDownloading(true);
       const password = form.getFieldValue('password') || urlPassword;
-      const blob = await downloadShare(shareId, password || undefined);
 
-      // 创建下载链接
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = shareData?.file?.name || 'download';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // 获取临时下载链接
+      const downloadUrl = await downloadShareFile(shareId, password || undefined);
 
-      message.success('下载开始');
+      // 在新标签页中打开下载链接
+      window.open(downloadUrl, '_blank');
+
+      message.success('下载链接已打开，请在新标签页中查看下载状态');
     } catch (error) {
       const err = error as { response?: { status: number } };
+      let errorMessage = '下载失败，请稍后重试';
+
       if (err.response?.status === 401 || err.response?.status === 403) {
-        message.error('密码错误');
+        errorMessage = '密码错误';
       } else if (err.response?.status === 404) {
-        message.error('文件不存在');
+        errorMessage = '文件不存在';
       } else if (err.response?.status === 410) {
-        message.error('分享已过期');
-      } else {
-        message.error('下载失败，请稍后重试');
+        errorMessage = '分享已过期';
       }
+
+      message.error(errorMessage);
     } finally {
       setDownloading(false);
     }

@@ -1,7 +1,8 @@
-import { Form, Input, message, Modal } from 'antd';
+import { Form, Input, Modal } from 'antd';
 import React, { useState } from 'react';
 
 import { fileApi } from '@/lib/api/file';
+import { message } from '@/lib/staticMethodsStore';
 
 interface CreateFolderModalProps {
   visible: boolean;

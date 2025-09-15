@@ -1,5 +1,6 @@
-import { message } from 'antd';
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+import { message } from '@/lib/staticMethodsStore';
 
 // 创建一个 axios 实例
 const instance: AxiosInstance = axios.create({
@@ -32,6 +33,10 @@ instance.interceptors.response.use(
         case 404:
           // 资源不存在
           message.error('请求的资源不存在');
+          break;
+        case 413:
+          // 存储空间不足
+          message.error('存储空间不足，请清理空间后重试');
           break;
         case 500:
           // 服务器错误

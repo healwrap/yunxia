@@ -7,7 +7,6 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import StorageInfoPopover from '@/components/FileManagement/StorageInfoPopover';
 import UploadStatusButton from '@/components/Upload/UploadStatusButton';
 import { getMenuItems, getSelectedKeys } from '@/lib/menu';
-import { withAuth } from '@/lib/withAuth';
 import router from '@/routes';
 
 const { Header, Sider, Content, Footer } = Layout;
@@ -175,5 +174,4 @@ function BenchLayout() {
   );
 }
 
-const withAuthPage = withAuth(BenchLayout);
-export default withAuthPage;
+export default BenchLayout;

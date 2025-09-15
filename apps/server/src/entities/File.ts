@@ -40,6 +40,9 @@ export class File {
   @Column({ type: 'varchar', length: 64, nullable: true })
   md5: string | null;
 
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 
