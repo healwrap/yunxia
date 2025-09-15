@@ -11,10 +11,9 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json ./
-COPY pnpm-lock.yaml ./
 
-# 安装依赖
-RUN pnpm install
+# 安装依赖（不使用 lockfile）
+RUN pnpm install --no-frozen-lockfile
 
 # 构建阶段
 FROM base AS builder
