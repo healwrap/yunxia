@@ -29,7 +29,6 @@ export default function SharePage() {
   const loadShares = async () => {
     try {
       setLoading(true);
-      await updateRequestToken();
       const response = await getShareList({
         page: pagination.current,
         pageSize: pagination.pageSize,
@@ -45,7 +44,10 @@ export default function SharePage() {
   };
 
   useEffect(() => {
-    loadShares();
+    (async () => {
+      await updateRequestToken();
+      await loadShares();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.pageSize, statusFilter]);
 

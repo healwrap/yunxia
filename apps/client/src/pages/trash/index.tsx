@@ -3,6 +3,7 @@ import { Button, Empty, Space, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 
 import { TrashFileList } from '@/components/Trash/TrashFileList';
+import { useAuthToken } from '@/lib/auth';
 import { message, modal } from '@/lib/staticMethodsStore';
 
 import { trashApi, TrashFileItem } from '../../lib/api/trash';
@@ -23,6 +24,7 @@ function TrashPage() {
     pageSize: DEFAULT_PAGE_SIZE,
     total: 0,
   });
+  const { updateRequestToken } = useAuthToken();
   // 加载回收站文件列表
   const loadTrashFiles = async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
     try {
@@ -128,7 +130,10 @@ function TrashPage() {
 
   // 页面加载时获取文件列表
   useEffect(() => {
-    loadTrashFiles();
+    (async () => {
+      await updateRequestToken();
+      await loadTrashFiles();
+    })();
   }, []);
 
   return (

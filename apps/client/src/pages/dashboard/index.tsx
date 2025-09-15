@@ -46,7 +46,6 @@ function FileManagement() {
   const loadFiles = async (folderId?: string, page: number = 1, pageSize: number = 20) => {
     try {
       setLoading(true);
-      await updateRequestToken();
 
       const response = await fileApi.getFiles({
         parentId: folderId,
@@ -74,7 +73,6 @@ function FileManagement() {
   const loadPath = async (folderId?: string) => {
     try {
       if (folderId) {
-        await updateRequestToken();
         const response = await fileApi.getFolderPath(folderId);
         setFolderPath(response.data.path);
       } else {
@@ -93,51 +91,53 @@ function FileManagement() {
     await Promise.all([loadFiles(folderId, page, pageSize), loadPath(folderId)]);
   };
 
+  const loadInitialData = async () => {
+    setCurrentFolderId(folderId);
+
+    try {
+      setLoading(true);
+
+      // 加载文件列表
+      const filesResponse = await fileApi.getFiles({
+        parentId: folderId,
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+      });
+
+      setFiles(filesResponse.data.files || []);
+      setPagination(filesResponse.data.pagination);
+
+      // 加载路径信息
+      if (folderId) {
+        const pathResponse = await fileApi.getFolderPath(folderId);
+        setFolderPath(pathResponse.data.path);
+      } else {
+        setFolderPath([{ id: 'root', name: '根目录' }]);
+      }
+    } catch (error) {
+      void error;
+      setFiles([]);
+      setPagination({
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        total: 0,
+        totalPages: 0,
+      });
+      setFolderPath([{ id: 'root', name: '根目录' }]);
+      if (folderId) {
+        navigate('/bench/dashboard');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 当URL参数改变时，加载数据
   useEffect(() => {
-    const loadInitialData = async () => {
-      setCurrentFolderId(folderId);
-
-      try {
-        setLoading(true);
-        await updateRequestToken();
-
-        // 加载文件列表
-        const filesResponse = await fileApi.getFiles({
-          parentId: folderId,
-          page: 1,
-          pageSize: DEFAULT_PAGE_SIZE,
-        });
-
-        setFiles(filesResponse.data.files || []);
-        setPagination(filesResponse.data.pagination);
-
-        // 加载路径信息
-        if (folderId) {
-          const pathResponse = await fileApi.getFolderPath(folderId);
-          setFolderPath(pathResponse.data.path);
-        } else {
-          setFolderPath([{ id: 'root', name: '根目录' }]);
-        }
-      } catch (error) {
-        void error;
-        setFiles([]);
-        setPagination({
-          page: 1,
-          pageSize: DEFAULT_PAGE_SIZE,
-          total: 0,
-          totalPages: 0,
-        });
-        setFolderPath([{ id: 'root', name: '根目录' }]);
-        if (folderId) {
-          navigate('/bench/dashboard');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialData();
+    (async () => {
+      await updateRequestToken();
+      await loadInitialData();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderId]);
 
@@ -177,8 +177,6 @@ function FileManagement() {
   // 处理文件下载
   const handleDownload = async (file: FileItem) => {
     try {
-      await updateRequestToken();
-
       // 获取临时下载链接
       const downloadUrl = await fileApi.downloadFileSimple(file.id);
 
@@ -201,7 +199,6 @@ function FileManagement() {
   // 处理文件删除
   const handleDelete = async (file: FileItem) => {
     try {
-      await updateRequestToken();
       await fileApi.deleteFiles({ ids: [file.id] });
       message.success('删除成功');
       loadData(currentFolderId, pagination.page, pagination.pageSize);

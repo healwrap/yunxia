@@ -1,6 +1,6 @@
 import { CloudOutlined, InboxOutlined } from '@ant-design/icons';
 import { Button, Popover, Progress, Space, Statistic, Typography } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { fileApi, StorageInfo } from '@/lib/api/file';
 import { useAuthToken } from '@/lib/auth';
@@ -26,7 +26,6 @@ const StorageInfoPopover: React.FC<StorageInfoPopoverProps> = ({ children }) => 
   const loadStorageInfo = async () => {
     try {
       setLoading(true);
-      await updateRequestToken();
       const response = await fileApi.getStorageInfo();
       setStorageInfo(response.data);
     } catch (error) {
@@ -44,6 +43,12 @@ const StorageInfoPopover: React.FC<StorageInfoPopoverProps> = ({ children }) => 
       loadStorageInfo();
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      await updateRequestToken();
+    })();
+  }, [updateRequestToken]);
 
   const content = (
     <div className="w-80 p-2">

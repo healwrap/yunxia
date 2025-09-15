@@ -83,6 +83,9 @@ const FileList: React.FC<FileListProps> = ({
       ),
       okText: '删除',
       okType: 'danger',
+      okButtonProps: {
+        type: 'primary',
+      },
       cancelText: '取消',
       onOk() {
         onDelete?.(record);
