@@ -5,6 +5,16 @@ import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
 
+// 根据环境加载不同的环境变量文件
+if (process.env.NODE_ENV === 'production') {
+  // 生产环境：环境变量通过 Docker 传入，不需要加载文件
+  // eslint-disable-next-line no-console
+  console.log('Running in production mode, using environment variables from Docker');
+} else {
+  // 开发环境：加载 .env.local 文件
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+}
+
 // 导入数据库配置
 import { initializeDatabase } from './src/config/database';
 import { clerkMiddleware } from './src/middlewares/clerk';
@@ -17,11 +27,14 @@ import shareRoutes from './src/routes/shareRoutes';
 import storageRoutes from './src/routes/storageRoutes';
 import trashRoutes from './src/routes/trashRoutes';
 import uploadRoutes from './src/routes/uploadRoutes';
+import { displayEnvironmentInfo, validateEnvironmentVariables } from './src/utils/env';
 import { initializeStorage } from './src/utils/file';
 import logger from './src/utils/logger';
 import { initializeLogDirectory } from './src/utils/logger/initialize';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// 验证环境变量
+validateEnvironmentVariables();
+displayEnvironmentInfo();
 
 // 验证 Clerk 密钥是否存在
 const secretKey = process.env.CLERK_SECRET_KEY;
