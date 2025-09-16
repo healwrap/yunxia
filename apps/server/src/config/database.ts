@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 
@@ -29,8 +27,10 @@ export const AppDataSource = new DataSource({
 export const initializeDatabase = async () => {
   try {
     await AppDataSource.initialize();
+    // eslint-disable-next-line no-console
     console.log('Database connection initialized');
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error during database initialization:', error);
     throw error;
   }

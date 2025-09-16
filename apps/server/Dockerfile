@@ -47,5 +47,5 @@ ENV PORT=3005
 # 暴露端口
 EXPOSE 3005
 
-# 使用 nodemon 启动应用（类似开发环境）
-CMD ["pnpm", "--filter", "@yunxia/server", "dev"]
+# 使用生产环境启动脚本，确保 reflect-metadata 正确加载
+CMD ["pnpm", "--filter", "@yunxia/server", "start"]
