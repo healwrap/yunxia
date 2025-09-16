@@ -85,6 +85,18 @@ jobs:
             # 登录阿里云容器服务
             docker login --username=${{ secrets.ALIYUN_USERNAME }} registry.cn-hangzhou.aliyuncs.com --password=${{ secrets.ALIYUN_PASSWORD }}
 
+            # 停止当前运行的服务
+            docker-compose down
+
+            # 拉取最新镜像
             docker-compose pull
+
+            # 启动服务
             docker-compose up -d
-            docker system prune -af
+
+            # 只清理 yunxia 项目相关的资源
+            echo "清理 yunxia 项目的旧镜像..."
+            docker images | grep "pepedd/yunxia" | grep -v "latest" | awk '{print $3}' | xargs -r docker rmi || true
+
+            # 只清理悬空镜像（安全）
+            docker image prune -f
