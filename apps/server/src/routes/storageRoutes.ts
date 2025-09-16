@@ -3,7 +3,7 @@ import Router from '@koa/router';
 import { StorageController } from '../controllers/StorageController';
 import { requireAuth } from '../middlewares/clerk';
 
-const router = new Router({ prefix: '/api/storage' });
+const router = new Router({ prefix: '/storage' });
 const storageController = new StorageController();
 
 // 获取用户存储信息

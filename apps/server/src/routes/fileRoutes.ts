@@ -3,7 +3,7 @@ import Router from '@koa/router';
 import { FileController } from '../controllers/FileController';
 import { requireAuth } from '../middlewares/clerk';
 
-const router = new Router({ prefix: '/api/files' });
+const router = new Router({ prefix: '/files' });
 const fileController = new FileController();
 
 // 获取文件列表

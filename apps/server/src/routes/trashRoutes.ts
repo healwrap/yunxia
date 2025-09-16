@@ -3,7 +3,7 @@ import Router from '@koa/router';
 import { TrashController } from '../controllers/TrashController';
 import { requireAuth } from '../middlewares/clerk';
 
-const router = new Router({ prefix: '/api/trash' });
+const router = new Router({ prefix: '/trash' });
 const trashController = new TrashController();
 
 // 获取回收站文件列表
