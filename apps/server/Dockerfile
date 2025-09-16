@@ -17,8 +17,8 @@ COPY . .
 # 安装所有依赖
 RUN pnpm install
 
-# 构建整个项目
-RUN pnpm build
+# 构建服务器项目
+RUN cd apps/server && pnpm build
 
 # 生产环境
 FROM node:20-alpine AS production
@@ -30,15 +30,16 @@ RUN npm install -g pnpm
 # 创建必要的目录
 RUN mkdir -p /app/uploads/temp /app/uploads/users /app/logs
 
-# 复制完整的项目结构以支持 monorepo
+# 复制项目结构和编译后的文件
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder /app/apps/server ./apps/server
+COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages ./packages
 
-# 安装所有依赖（包括 devDependencies 以支持 nodemon 和 tsx）
-RUN pnpm install --frozen-lockfile
+# 只安装生产依赖
+RUN pnpm install --frozen-lockfile --prod
 
 # 设置环境变量
 ENV NODE_ENV=production
@@ -47,5 +48,5 @@ ENV PORT=3005
 # 暴露端口
 EXPOSE 3005
 
-# 使用生产环境启动脚本，确保 reflect-metadata 正确加载
-CMD ["pnpm", "--filter", "@yunxia/server", "start"]
+# 使用编译后的 JavaScript 启动
+CMD ["node", "apps/server/dist/app.js"]
