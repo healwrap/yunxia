@@ -4,6 +4,8 @@
 
 本项目使用AI开发90%代码，参考文章：https://juejin.cn/post/7549418392621891624
 
+预览地址：https://yunxia.healwrap.cn/
+
 项目涵盖技术栈
 
 - 前端技术栈React、TailwindCSS、antd、
