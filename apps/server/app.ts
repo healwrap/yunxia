@@ -1,3 +1,6 @@
+// 必须首先导入 reflect-metadata，确保装饰器元数据正确加载
+import 'reflect-metadata';
+
 // 加载环境变量，确保这是第一个导入
 import cors from '@koa/cors';
 import dotenv from 'dotenv';
