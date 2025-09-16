@@ -81,6 +81,8 @@ jobs:
             echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
             echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+            echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
             echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
 
             # 登录阿里云容器服务
