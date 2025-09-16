@@ -39,7 +39,7 @@ COPY --from=builder /app/apps/server/dist ./apps/server/dist
 COPY --from=builder /app/packages ./packages
 
 # 只安装生产依赖
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile
 
 # 设置环境变量
 ENV NODE_ENV=production
