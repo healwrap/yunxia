@@ -11,7 +11,7 @@ import { requireAuth } from '../middlewares/clerk';
 import { ensureDir } from '../utils/file';
 
 const router = new Router({
-  prefix: '/api/upload',
+  prefix: '/upload',
 });
 
 // 创建临时目录

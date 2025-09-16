@@ -633,7 +633,7 @@ export class FileController {
       // 构建完整的下载链接
       const port = process.env.PORT || 3000;
       const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
-      const downloadUrl = `${baseUrl}/api/files/${id}/download?token=${downloadToken}`;
+      const downloadUrl = `${baseUrl}/files/${id}/download?token=${downloadToken}`;
 
       ctx.body = {
         code: 200,

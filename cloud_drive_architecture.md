@@ -217,7 +217,7 @@ node18、pnpm包管理工具
 
 ##### 握手接口 (handshake)
 
-**接口路径**: `POST /api/upload/handshake`
+**接口路径**: `POST /upload/handshake`
 
 **请求参数**:
 
@@ -256,7 +256,7 @@ node18、pnpm包管理工具
 
 ##### 分片上传接口 (uploadChunk)
 
-**接口路径**: `POST /api/upload/chunk`
+**接口路径**: `POST /upload/chunk`
 
 **请求参数**:
 
@@ -307,7 +307,7 @@ file: binary            // 分片二进制数据
 
 #### 4.1.2 创建文件夹
 
-**接口路径**: `POST /api/folders`
+**接口路径**: `POST /folders`
 
 **请求参数**:
 
@@ -338,7 +338,7 @@ file: binary            // 分片二进制数据
 
 #### 4.1.3 获取文件列表
 
-**接口路径**: `GET /api/files`
+**接口路径**: `GET /files`
 
 **查询参数**:
 
@@ -387,7 +387,7 @@ fileType: string     // 文件类型筛选，可选
 
 #### 4.1.4 删除文件/文件夹
 
-**接口路径**: `DELETE /api/files`
+**接口路径**: `DELETE /files`
 
 **请求参数**:
 
@@ -420,7 +420,7 @@ fileType: string     // 文件类型筛选，可选
 
 #### 4.1.5 重命名文件/文件夹
 
-**接口路径**: `PUT /api/files/{id}/rename`
+**接口路径**: `PUT /files/{id}/rename`
 
 **请求参数**:
 
@@ -447,7 +447,7 @@ fileType: string     // 文件类型筛选，可选
 
 #### 4.1.6 移动文件/文件夹
 
-**接口路径**: `PUT /api/files/move`
+**接口路径**: `PUT /files/move`
 
 **请求参数**:
 
@@ -480,7 +480,7 @@ fileType: string     // 文件类型筛选，可选
 
 #### 4.1.7 复制文件/文件夹
 
-**接口路径**: `POST /api/files/copy`
+**接口路径**: `POST /files/copy`
 
 **请求参数**:
 
@@ -513,7 +513,7 @@ fileType: string     // 文件类型筛选，可选
 
 #### 4.1.8 文件下载
 
-**接口路径**: `GET /api/files/{id}/download`
+**接口路径**: `GET /files/{id}/download`
 
 **查询参数**:
 
@@ -526,7 +526,7 @@ inline: boolean      // 是否内联显示，可选
 
 #### 4.1.9 批量下载
 
-**接口路径**: `POST /api/files/batch-download`
+**接口路径**: `POST /files/batch-download`
 
 **请求参数**:
 
@@ -540,7 +540,7 @@ inline: boolean      // 是否内联显示，可选
 
 #### 4.1.10 获取存储空间信息
 
-**接口路径**: `GET /api/storage/info`
+**接口路径**: `GET /storage/info`
 
 **返回数据**:
 
@@ -573,7 +573,7 @@ inline: boolean      // 是否内联显示，可选
 
 #### 4.2.1 创建分享
 
-**接口路径**: `POST /api/shares`
+**接口路径**: `POST /shares`
 
 **请求参数**:
 
@@ -603,7 +603,7 @@ inline: boolean      // 是否内联显示，可选
 
 #### 4.2.2 获取分享内容
 
-**接口路径**: `GET /api/shares/{shareId}`
+**接口路径**: `GET /shares/{shareId}`
 
 **查询参数**:
 
@@ -637,7 +637,7 @@ password: string     // 如果有密码保护，通过查询参数传递
 
 #### 4.2.3 下载分享文件
 
-**接口路径**: `GET /api/shares/{shareId}/download`
+**接口路径**: `GET /shares/{shareId}/download`
 
 **查询参数**:
 
@@ -649,7 +649,7 @@ password: string     // 如果有密码保护，通过查询参数传递
 
 #### 4.2.4 更新分享设置
 
-**接口路径**: `PUT /api/shares/{id}`
+**接口路径**: `PUT /shares/{id}`
 
 **请求参数**:
 
@@ -662,7 +662,7 @@ password: string     // 如果有密码保护，通过查询参数传递
 
 #### 4.2.5 取消分享
 
-**接口路径**: `DELETE /api/shares/{id}`
+**接口路径**: `DELETE /shares/{id}`
 
 **返回数据**:
 
@@ -675,7 +675,7 @@ password: string     // 如果有密码保护，通过查询参数传递
 
 #### 4.2.6 获取分享列表
 
-**接口路径**: `GET /api/shares/list`
+**接口路径**: `GET /shares/list`
 
 **查询参数**:
 
@@ -719,7 +719,7 @@ status: string       // 分享状态筛选：active|expired|all，默认active
 
 #### 4.3.1 获取回收站列表
 
-**接口路径**: `GET /api/trash`
+**接口路径**: `GET /trash`
 
 **查询参数**:
 
@@ -732,7 +732,7 @@ sortOrder: string    // 排序方向：asc|desc
 
 #### 4.3.2 恢复文件
 
-**接口路径**: `POST /api/trash/restore`
+**接口路径**: `POST /trash/restore`
 
 **请求参数**:
 
@@ -744,7 +744,7 @@ sortOrder: string    // 排序方向：asc|desc
 
 #### 4.3.3 永久删除
 
-**接口路径**: `DELETE /api/trash`
+**接口路径**: `DELETE /trash`
 
 **请求参数**:
 
