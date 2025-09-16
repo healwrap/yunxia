@@ -5,7 +5,7 @@ import { message } from '@/lib/staticMethodsStore';
 // 创建一个 axios 实例
 const instance: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 15000,
+  timeout: 30000, // 请求超时时间(上传文件可能较长)
   headers: {
     'Content-Type': 'application/json',
   },

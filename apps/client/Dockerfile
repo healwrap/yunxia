@@ -29,6 +29,7 @@ RUN pnpm build
 
 # 生产环境
 FROM nginx:alpine AS production
+# nginx html静态资源的路径，前端dist目录的内容需要复制到这里
 WORKDIR /usr/share/nginx/html
 
 # 移除默认的nginx静态资源
@@ -38,7 +39,7 @@ RUN rm -rf ./*
 COPY --from=builder /app/apps/client/dist .
 
 # 复制nginx配置文件（从正确的路径）
-COPY apps/client/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/client/nginx.conf /etc/nginx/nginx.conf
 
 # 暴露端口
 EXPOSE 80
