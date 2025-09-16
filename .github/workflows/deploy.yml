@@ -81,6 +81,7 @@ jobs:
             echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
             echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
 
             # 登录阿里云容器服务
             docker login --username=${{ secrets.ALIYUN_USERNAME }} registry.cn-hangzhou.aliyuncs.com --password=${{ secrets.ALIYUN_PASSWORD }}

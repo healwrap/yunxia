@@ -29,6 +29,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3005
+      - BASE_URL=${BASE_URL}
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE}
