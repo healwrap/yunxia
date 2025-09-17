@@ -4,26 +4,25 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import AnimatedSection from '@/components/AnimatedSection';
-import MagicBento from '@/components/MagicBento';
 import Silk from '@/components/Silk';
 import TextType from '@/components/TextType';
+import CodeShowcase from '@/components/ui/code-showcase';
+import DevelopmentHighlights from '@/components/ui/development-highlights';
 import { GalaxyHeroContent } from '@/components/ui/galaxy-hero-content';
 import { GalaxyNavbar } from '@/components/ui/galaxy-navbar';
+import PerformanceComparison from '@/components/ui/performance-comparison';
 import { SplineBackground } from '@/components/ui/spline-background';
+import TechnicalArchitecture from '@/components/ui/technical-architecture';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const screenshotRef = useRef<HTMLDivElement>(null);
   const heroContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (screenshotRef.current && heroContentRef.current) {
+      if (heroContentRef.current) {
         requestAnimationFrame(() => {
           const scrollPosition = window.pageYOffset;
-          if (screenshotRef.current) {
-            screenshotRef.current.style.transform = `translateY(-${scrollPosition * 0.5}px)`;
-          }
 
           const maxScroll = 400;
           const opacity = 1 - Math.min(scrollPosition / maxScroll, 1);
@@ -53,15 +52,29 @@ export default function HomePage() {
           items={[
             {
               key: 'features',
-              label: '功能',
-              href: '#features',
-              children: [
-                { label: '分片上传', href: '#upload' },
-                { label: '秒传技术', href: '#instant' },
-                { label: '安全共享', href: '#share' },
-              ],
+              label: '功能特性',
+              href: '#technology',
             },
-            { key: 'docs', label: '文档', href: '/docs' },
+            {
+              key: 'performance',
+              label: '性能对比',
+              href: '#performance',
+            },
+            {
+              key: 'highlights',
+              label: '开发亮点',
+              href: '#development-highlights',
+            },
+            {
+              key: 'implementation',
+              label: '代码实现',
+              href: '#implementation',
+            },
+            {
+              key: 'tech',
+              label: '技术栈',
+              href: '#tech-stack',
+            },
             {
               key: 'github',
               label: (
@@ -138,104 +151,101 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Screenshot/Preview Section */}
-      <div className="bg-black relative z-10" style={{ marginTop: '-10vh' }}>
-        <section className="relative z-10 container mx-auto px-4 md:px-6 lg:px-8 mt-11 md:mt-12">
-          <div
-            ref={screenshotRef}
-            className="bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700/50 w-full md:w-[80%] lg:w-[70%] mx-auto"
-          >
-            <div>
-              <img
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=3840&h=2160&q=80&auto=format&fit=crop"
-                alt="YunXia 云匣 Dashboard Screenshot"
-                className="w-full h-auto block rounded-lg mx-auto"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="relative py-24 px-4 bg-gradient-to-b from-black to-slate-900">
+      <div className="bg-black relative z-10">
+        {/* Technical Architecture Section */}
+        <section id="technology" className="relative py-24 px-4 bg-black">
           <div className="max-w-7xl mx-auto">
-            {/* Section Header */}
             <AnimatedSection direction="up" delay={200}>
-              <div className="text-center mb-20">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm mb-6">
-                  ✨ 核心特性
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm mb-6">
+                  🏗️ 技术架构
                 </div>
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                  为什么选择
-                  <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  技术
+                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     {' '}
-                    云匣
+                    创新亮点
                   </span>
                 </h2>
-                <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                  基于现代Web技术构建，提供企业级的云存储解决方案
+                <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+                  WebAssembly高性能计算、WebWorker多线程处理、智能并发控制，打造业界领先的技术架构
                 </p>
               </div>
             </AnimatedSection>
 
-            {/* Features Grid */}
             <AnimatedSection direction="up" delay={400}>
-              <div className="w-full flex justify-center">
-                <MagicBento
-                  cards={[
-                    {
-                      color: '#0f172a',
-                      title: '智能分片上传',
-                      description: '先进的分片上传技术，支持大文件断点续传，确保上传稳定可靠',
-                      label: '核心技术',
-                    },
-                    {
-                      color: '#0f172a',
-                      title: '秒传黑科技',
-                      description: 'MD5哈希校验，相同文件瞬间完成上传，节省时间和带宽',
-                      label: '智能识别',
-                    },
-                    {
-                      color: '#0f172a',
-                      title: '安全共享',
-                      description: '支持密码保护和时效控制的文件分享，数据安全有保障',
-                      label: '隐私保护',
-                    },
-                    {
-                      color: '#0f172a',
-                      title: '空间管理',
-                      description: '智能存储空间管理，回收站机制，让您的数据井井有条',
-                      label: '高效管理',
-                    },
-                    {
-                      color: '#0f172a',
-                      title: '多端同步',
-                      description: '跨平台支持，随时随地访问您的文件，工作生活无缝衔接',
-                      label: '便捷访问',
-                    },
-                    {
-                      color: '#0f172a',
-                      title: '企业级安全',
-                      description: 'Clerk身份认证，256位加密传输，保护您的数据安全',
-                      label: '安全可靠',
-                    },
-                  ]}
-                  enableStars={true}
-                  enableSpotlight={true}
-                  enableBorderGlow={true}
-                  enableTilt={false}
-                  clickEffect={true}
-                  enableMagnetism={false}
-                  glowColor="59, 130, 246"
-                  spotlightRadius={350}
-                  particleCount={15}
-                />
+              <TechnicalArchitecture />
+            </AnimatedSection>
+          </div>
+        </section>
+
+        {/* Performance Comparison Section */}
+        <section
+          id="performance"
+          className="relative py-24 px-4 bg-gradient-to-b from-black to-slate-900"
+        >
+          <div className="max-w-7xl mx-auto">
+            <AnimatedSection direction="up" delay={200}>
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-300 text-sm mb-6">
+                  📊 性能对比
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                  性能
+                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    {' '}
+                    优势明显
+                  </span>
+                </h2>
+                <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+                  相比传统上传方式，云匣在速度、可靠性、用户体验等方面都有显著提升
+                </p>
               </div>
+            </AnimatedSection>
+
+            <AnimatedSection direction="up" delay={400}>
+              <PerformanceComparison />
+            </AnimatedSection>
+          </div>
+        </section>
+
+        {/* Development Highlights Section */}
+        <section
+          id="development-highlights"
+          className="relative py-24 px-4 bg-gradient-to-b from-slate-900 to-black"
+        >
+          <DevelopmentHighlights />
+        </section>
+
+        {/* Code Implementation Section */}
+        <section id="implementation" className="relative py-24 px-4 bg-slate-900">
+          <div className="max-w-7xl mx-auto">
+            <AnimatedSection direction="up" delay={200}>
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-sm mb-6">
+                  💻 代码实现
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                  核心
+                  <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                    {' '}
+                    代码解析
+                  </span>
+                </h2>
+                <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+                  深入了解云匣核心技术的具体实现，包括WebAssembly、WebWorker、三阶段协议等关键代码
+                </p>
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection direction="up" delay={400}>
+              <CodeShowcase />
             </AnimatedSection>
           </div>
         </section>
 
         {/* Tech Stack Section */}
-        <section className="relative py-24 px-4 bg-black">
+        <section id="tech-stack" className="relative py-24 px-4 bg-black">
           <div className="max-w-6xl mx-auto text-center">
             <AnimatedSection direction="up" delay={200}>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm mb-6">
