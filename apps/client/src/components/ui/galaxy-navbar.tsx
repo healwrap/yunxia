@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronDown, Menu, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Menu, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface NavItem {
   key?: string;
@@ -30,20 +30,52 @@ export function GalaxyNavbar({
 }: GalaxyNavbarProps) {
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mobileDropdowns, setMobileDropdowns] = useState<Record<string, boolean>>({});
+  const navbarRef = useRef<HTMLDivElement>(null);
 
   const handleMouseEnterNavItem = (item: string) => setHoveredNavItem(item);
   const handleMouseLeaveNavItem = () => setHoveredNavItem(null);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    if (isMobileMenuOpen) {
-      setMobileDropdowns({});
-    }
   };
 
-  const toggleMobileDropdown = (key: string) => {
-    setMobileDropdowns(prev => ({ ...prev, [key]: !prev[key] }));
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  // 添加点击外部关闭菜单的效果
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isMobileMenuOpen &&
+        navbarRef.current &&
+        !navbarRef.current.contains(event.target as Node)
+      ) {
+        closeMobileMenu();
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
+  // 平滑滚动到锚点
+  const handleAnchorClick = (href: string, e: React.MouseEvent) => {
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }
   };
 
   const navLinkClass = (itemName: string, extraClasses = '') => {
@@ -62,8 +94,7 @@ export function GalaxyNavbar({
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024 && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-        setMobileDropdowns({});
+        closeMobileMenu();
       }
     };
 
@@ -83,23 +114,20 @@ export function GalaxyNavbar({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M16 32C24.8366 32 32 24.8366 32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32ZM12.4306 9.70695C12.742 9.33317 13.2633 9.30058 13.6052 9.62118L19.1798 14.8165C19.4894 15.1054 19.4894 15.5841 19.1798 15.873L13.6052 21.0683C13.2633 21.3889 12.742 21.3563 12.4306 19.9991V9.70695Z"
-          fill="currentColor"
-        />
+        <circle cx="16" cy="16" r="14" stroke="white" strokeWidth="2" />
+        <circle cx="16" cy="16" r="5" fill="white" />
       </svg>
     </div>
   );
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-20"
+      ref={navbarRef}
+      className="fixed top-0 left-0 right-0 w-full z-20"
       style={{
         backgroundColor: 'rgba(13, 13, 24, 0.3)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderRadius: '0 0 15px 15px',
       }}
     >
@@ -123,28 +151,10 @@ export function GalaxyNavbar({
                     className={navLinkClass(itemKey, 'flex items-center')}
                     target={item.external ? '_blank' : undefined}
                     rel={item.external ? 'noopener noreferrer' : undefined}
+                    onClick={e => !item.external && handleAnchorClick(item.href, e)}
                   >
                     {item.label}
-                    {item.children && (
-                      <ChevronDown className="ml-1 w-3 h-3 group-hover:rotate-180 transition-transform duration-200" />
-                    )}
                   </a>
-                  {item.children && (
-                    <div
-                      className="absolute left-0 mt-2 w-48 bg-black bg-opacity-50 rounded-md shadow-lg py-2 border border-gray-700/30 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-30"
-                      style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                    >
-                      {item.children.map((child, childIndex) => (
-                        <a
-                          key={childIndex}
-                          href={child.href}
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-gray-100 hover:bg-gray-800/30 transition duration-150"
-                        >
-                          {child.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -177,67 +187,44 @@ export function GalaxyNavbar({
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - 和顶部菜单使用相同的高斯模糊背景 */}
       <div
-        className={`lg:hidden bg-black bg-opacity-50 border-t border-gray-700/30 absolute top-full left-0 right-0 z-30
+        className={`lg:hidden border-t border-gray-700/30 absolute top-full left-0 right-0 z-30
            overflow-hidden transition-all duration-300 ease-in-out
            ${isMobileMenuOpen ? 'max-h-screen opacity-100 pointer-events-auto' : 'max-h-0 opacity-0 pointer-events-none'}`}
-        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+        style={{
+          backgroundColor: 'rgba(13, 13, 24, 0.3)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
       >
         <div className="px-4 py-6 flex flex-col space-y-4">
           {items.map((item, index) => {
-            const itemKey =
-              item.key || (typeof item.label === 'string' ? item.label : `item-${index}`);
             return (
               <div key={index} className="relative text-white">
-                {item.children ? (
-                  <>
-                    <button
-                      className="text-gray-300 hover:text-gray-100 flex items-center justify-between w-full text-left text-sm py-2"
-                      onClick={() => toggleMobileDropdown(itemKey)}
-                      aria-expanded={mobileDropdowns[itemKey]}
-                    >
-                      {item.label}
-                      <ChevronDown
-                        className={`ml-2 w-3 h-3 transition-transform duration-200 ${mobileDropdowns[itemKey] ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                    <div
-                      className={`pl-4 space-y-2 mt-2 overflow-hidden transition-all duration-300 ease-in-out  ${
-                        mobileDropdowns[itemKey]
-                          ? 'max-h-[200px] opacity-100 pointer-events-auto'
-                          : 'max-h-0 opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      {item.children.map((child, childIndex) => (
-                        <a
-                          key={childIndex}
-                          href={child.href}
-                          className="block text-gray-300 hover:text-gray-100 text-sm py-1 transition duration-150"
-                          onClick={toggleMobileMenu}
-                        >
-                          {child.label}
-                        </a>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <a
-                    href={item.href}
-                    className="text-gray-300 hover:text-gray-100 text-sm py-2 transition duration-150"
-                    onClick={toggleMobileMenu}
-                    target={item.external ? '_blank' : undefined}
-                    rel={item.external ? 'noopener noreferrer' : undefined}
-                  >
-                    {item.label}
-                  </a>
-                )}
+                <a
+                  href={item.href}
+                  className="text-gray-300 hover:text-gray-100 text-sm py-2 transition duration-150"
+                  onClick={e => {
+                    if (!item.external) {
+                      handleAnchorClick(item.href, e);
+                    }
+                    closeMobileMenu();
+                  }}
+                  target={item.external ? '_blank' : undefined}
+                  rel={item.external ? 'noopener noreferrer' : undefined}
+                >
+                  {item.label}
+                </a>
               </div>
             );
           })}
           {secondaryCtaText && (
             <button
-              onClick={onSecondaryCtaClick}
+              onClick={() => {
+                onSecondaryCtaClick?.();
+                closeMobileMenu();
+              }}
               className="text-gray-300 hover:text-gray-100 text-sm py-2 transition duration-150"
             >
               {secondaryCtaText}
