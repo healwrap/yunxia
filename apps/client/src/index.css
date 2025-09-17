@@ -118,3 +118,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Override antd link styles to prevent conflicts */
+a:not(.ant-btn):not(.ant-anchor-link):not([class*='ant-']) {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+a:not(.ant-btn):not(.ant-anchor-link):not([class*='ant-']):hover {
+  text-decoration: none !important;
+}
