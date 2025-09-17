@@ -1,11 +1,11 @@
 import { randomUUID } from 'crypto';
-import { promises as fs } from 'fs';
 import { Context } from 'koa';
 
 import { AppDataSource } from '../config/database';
 import { SHARE_STATUS } from '../constants/files';
 import { File } from '../entities/File';
 import { Share } from '../entities/Share';
+import { FileDownloadService } from '../services/FileDownloadService';
 import { generateDownloadToken, verifyDownloadToken } from '../utils/downloadToken';
 import logger from '../utils/logger';
 
@@ -344,7 +344,10 @@ export class ShareController {
           }
 
           // 直接下载文件，跳过后面的验证
-          await ShareController.sendFile(ctx, share.file, shareId);
+          await FileDownloadService.handleFileDownload(ctx, share.file, 'share', {
+            shareId,
+            hasPassword: !!share.password,
+          });
           return;
         } catch (error) {
           logger.error(
@@ -393,43 +396,13 @@ export class ShareController {
         return;
       }
 
-      await ShareController.sendFile(ctx, share.file, shareId);
+      await FileDownloadService.handleFileDownload(ctx, share.file, 'share', {
+        shareId,
+        hasPassword: !!share.password,
+      });
     } catch (error) {
-      logger.error('下载分享文件失败:', error);
-      ctx.status = 500;
-      ctx.body = { code: 500, message: '服务器内部错误' };
+      FileDownloadService.handleDownloadError(ctx, error, 'share');
     }
-  }
-
-  // 提取文件发送逻辑为单独方法
-  static async sendFile(ctx: Context, file: File, shareId: string) {
-    // 如果是文件夹，暂不支持下载
-    if (file.is_folder) {
-      ctx.status = 400;
-      ctx.body = { code: 400, message: '暂不支持下载文件夹' };
-      return;
-    }
-
-    // 检查物理文件是否存在，使用数据库中的路径
-    try {
-      await fs.access(file.path);
-    } catch {
-      ctx.status = 404;
-      ctx.body = { code: 404, message: '文件不存在于服务器上' };
-      return;
-    }
-
-    // 设置下载响应头 - 使用 RFC 6266 标准格式，支持中文文件名
-    const encodedFilename = encodeURIComponent(file.name);
-    ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
-    ctx.set('Content-Type', file.type || 'application/octet-stream');
-    ctx.set('Content-Length', file.size?.toString() || '0');
-
-    // 创建文件流并响应
-    const fileStream = await fs.readFile(file.path);
-    ctx.body = fileStream;
-
-    logger.info(`分享文件下载成功: ${shareId} - ${file.name}`);
   }
 
   // 更新分享设置

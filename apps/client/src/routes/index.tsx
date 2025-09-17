@@ -27,10 +27,6 @@ export default createBrowserRouter([
         path: '/',
         element: withSuspense(lazy(() => import('@/pages/home/index.tsx'))),
       },
-      {
-        path: 'test',
-        element: withSuspense(lazy(() => import('@/pages/home/api-test.tsx'))),
-      },
     ],
   },
   {

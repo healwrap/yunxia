@@ -1,4 +1,3 @@
-import * as fs from 'fs/promises';
 import { Context } from 'koa';
 import * as path from 'path';
 
@@ -7,6 +6,7 @@ import { FILE_STATUS } from '../constants/files';
 import { DEFAULT_PAGE_SIZE } from '../constants/page';
 import { File } from '../entities/File';
 import { FileDeleteService } from '../services/FileDeleteService';
+import { FileDownloadService } from '../services/FileDownloadService';
 import { FileNameService } from '../services/FileNameService';
 import { FileQueryHelper } from '../services/FileQueryHelper';
 import { FileRecursiveService } from '../services/FileRecursiveService';
@@ -452,46 +452,13 @@ export class FileController {
         return;
       }
 
-      if (file.is_folder) {
-        ctx.status = 400;
-        ctx.body = {
-          code: 400,
-          message: '不能下载文件夹',
-        };
-        return;
-      }
-
-      // 检查物理文件是否存在
-      try {
-        await fs.access(file.path);
-      } catch {
-        ctx.status = 404;
-        ctx.body = {
-          code: 404,
-          message: '文件不存在于服务器上',
-        };
-        return;
-      }
-
-      // 设置下载响应头
-      // 使用 RFC 6266 标准格式，支持中文文件名
-      const encodedFilename = encodeURIComponent(file.name);
-      ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
-      ctx.set('Content-Type', file.type || 'application/octet-stream');
-      ctx.set('Content-Length', file.size?.toString() || '0');
-
-      // 创建文件流并响应
-      const fileStream = await fs.readFile(file.path);
-      ctx.body = fileStream;
-
-      logger.info(`文件下载成功: ${file.name}`, { userId, fileId: file.id });
+      // 使用统一的文件下载服务
+      await FileDownloadService.handleFileDownload(ctx, file, 'file', {
+        userId,
+        fileId: file.id,
+      });
     } catch (error) {
-      logger.error('下载文件失败:', error);
-      ctx.status = 500;
-      ctx.body = {
-        code: 500,
-        message: '下载文件失败',
-      };
+      FileDownloadService.handleDownloadError(ctx, error, 'file');
     }
   }
 
