@@ -82,124 +82,126 @@ export default function DevelopmentHighlights() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <AnimatedSection direction="up" delay={200}>
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm mb-6">
-            <Rocket className="w-4 h-4" />
-            开发亮点
+    <section className="relative py-24 px-4 bg-gradient-to-b from-slate-900 to-black">
+      <div className="max-w-7xl mx-auto">
+        <AnimatedSection direction="up" delay={200}>
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm mb-6">
+              <Rocket className="w-4 h-4" />
+              开发亮点
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              现代化
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                {' '}
+                开发流程
+              </span>
+            </h2>
+            <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+              基于AI技术和现代DevOps实践，打造高效、可靠的开发与部署体系
+            </p>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            现代化
-            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              {' '}
-              开发流程
-            </span>
-          </h2>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-            基于AI技术和现代DevOps实践，打造高效、可靠的开发与部署体系
-          </p>
-        </div>
-      </AnimatedSection>
+        </AnimatedSection>
 
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-        {highlights.map((item, index) => (
-          <AnimatedSection key={index} direction="up" delay={300 + index * 100}>
-            <div className="relative h-full">
-              {/* 背景卡片 */}
-              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-800/30 border border-gray-700/50 backdrop-blur-sm h-full">
-                {/* 顶部图标和标题 */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div
-                    className={`p-3 rounded-xl bg-gradient-to-r ${item.gradient} bg-opacity-10 border border-current border-opacity-20`}
-                  >
-                    {item.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-1">{item.title}</h3>
-                    <p
-                      className={`text-sm bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent font-medium`}
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+          {highlights.map((item, index) => (
+            <AnimatedSection key={index} direction="up" delay={300 + index * 100}>
+              <div className="relative h-full">
+                {/* 背景卡片 */}
+                <div className="relative p-8 rounded-2xl bg-gradient-to-br from-gray-900/50 to-gray-800/30 border border-gray-700/50 backdrop-blur-sm h-full">
+                  {/* 顶部图标和标题 */}
+                  <div className="flex items-start gap-4 mb-6">
+                    <div
+                      className={`p-3 rounded-xl bg-gradient-to-r ${item.gradient} bg-opacity-10 border border-current border-opacity-20`}
                     >
-                      {item.subtitle}
-                    </p>
+                      {item.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-1">{item.title}</h3>
+                      <p
+                        className={`text-sm bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent font-medium`}
+                      >
+                        {item.subtitle}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* 描述 */}
-                <p className="text-gray-300 mb-6 leading-relaxed">{item.description}</p>
+                  {/* 描述 */}
+                  <p className="text-gray-300 mb-6 leading-relaxed">{item.description}</p>
 
-                {/* 详细信息展开 */}
-                {item.details && (
-                  <div className="mb-6">
-                    <div className="grid gap-4">
-                      {item.details.map((detail, detailIndex) => (
-                        <div
-                          key={detailIndex}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/20"
-                        >
-                          <div className="flex-shrink-0 mt-1">{detail.icon}</div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-white mb-1">
-                              {detail.title}
-                            </h4>
-                            <p className="text-xs text-gray-400 leading-relaxed">
-                              {detail.description}
-                            </p>
+                  {/* 详细信息展开 */}
+                  {item.details && (
+                    <div className="mb-6">
+                      <div className="grid gap-4">
+                        {item.details.map((detail, detailIndex) => (
+                          <div
+                            key={detailIndex}
+                            className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/20"
+                          >
+                            <div className="flex-shrink-0 mt-1">{detail.icon}</div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold text-white mb-1">
+                                {detail.title}
+                              </h4>
+                              <p className="text-xs text-gray-400 leading-relaxed">
+                                {detail.description}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  {/* 特性列表 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {item.features.map((feature, featureIndex) => (
+                      <div key={featureIndex} className="flex items-center gap-2">
+                        <div
+                          className={`w-2 h-2 rounded-full bg-gradient-to-r ${item.gradient}`}
+                        ></div>
+                        <span className="text-sm text-gray-400">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
 
-                {/* 特性列表 */}
-                <div className="grid grid-cols-2 gap-3">
-                  {item.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="flex items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full bg-gradient-to-r ${item.gradient}`}
-                      ></div>
-                      <span className="text-sm text-gray-400">{feature}</span>
-                    </div>
-                  ))}
+                  {/* 装饰性元素 */}
+                  <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
+                    <div
+                      className={`w-full h-full rounded-full bg-gradient-to-r ${item.gradient}`}
+                    ></div>
+                  </div>
                 </div>
 
-                {/* 装饰性元素 */}
-                <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
-                  <div
-                    className={`w-full h-full rounded-full bg-gradient-to-r ${item.gradient}`}
-                  ></div>
-                </div>
+                {/* 发光效果 */}
+                <div
+                  className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${item.gradient} opacity-5 blur-xl`}
+                ></div>
               </div>
-
-              {/* 发光效果 */}
-              <div
-                className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${item.gradient} opacity-5 blur-xl`}
-              ></div>
-            </div>
-          </AnimatedSection>
-        ))}
-      </div>
-
-      {/* 额外的统计信息 */}
-      <AnimatedSection direction="up" delay={600}>
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[
-            { value: '95%+', label: 'AI生成代码' },
-            { value: '100%', label: '自动化测试' },
-            { value: '<5min', label: '部署时间' },
-            { value: '24/7', label: '监控运维' },
-          ].map((stat, index) => (
-            <div
-              key={index}
-              className="text-center p-4 rounded-xl bg-gray-900/30 border border-gray-700/30"
-            >
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-400">{stat.label}</div>
-            </div>
+            </AnimatedSection>
           ))}
         </div>
-      </AnimatedSection>
-    </div>
+
+        {/* 额外的统计信息 */}
+        <AnimatedSection direction="up" delay={600}>
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { value: '95%+', label: 'AI生成代码' },
+              { value: '100%', label: '自动化测试' },
+              { value: '<5min', label: '部署时间' },
+              { value: '24/7', label: '监控运维' },
+            ].map((stat, index) => (
+              <div
+                key={index}
+                className="text-center p-4 rounded-xl bg-gray-900/30 border border-gray-700/30"
+              >
+                <div className="text-2xl md:text-3xl font-bold text-white mb-1">{stat.value}</div>
+                <div className="text-sm text-gray-400">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </AnimatedSection>
+      </div>
+    </section>
   );
 }
