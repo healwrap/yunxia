@@ -31,6 +31,7 @@ export function SplineBackground({
             width: '100%',
             height: '100vh',
             pointerEvents: 'auto',
+            background: 'black',
           }}
           scene={scene}
         />

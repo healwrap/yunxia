@@ -5,13 +5,13 @@ interface ComparisonMetric {
   id: string;
   title: string;
   traditional: {
-    value: number;
+    value: number | string;
     unit: string;
     description: string;
     color: string;
   };
   yunxia: {
-    value: number;
+    value: number | string;
     unit: string;
     description: string;
     color: string;
@@ -22,86 +22,86 @@ interface ComparisonMetric {
 
 const PerformanceComparison: React.FC = () => {
   const [activeMetric, setActiveMetric] = useState<string>('speed');
-  const [animatedValues, setAnimatedValues] = useState<Record<string, number>>({});
+  const [animatedValues, setAnimatedValues] = useState<Record<string, number | string>>({});
 
   const metrics: ComparisonMetric[] = [
     {
       id: 'speed',
-      title: '上传速度',
+      title: '10G文件上传',
       traditional: {
-        value: 100,
-        unit: 'MB/min',
-        description: '单线程上传，受网络波动影响',
+        value: 140,
+        unit: '秒 (百度网盘桌面版)',
+        description: '10G文件上传耗时2分20秒',
         color: 'text-red-400',
       },
       yunxia: {
-        value: 300,
-        unit: 'MB/min',
-        description: '并发分片上传，充分利用带宽',
+        value: 13,
+        unit: '秒 (云匣网页版)',
+        description: '分片并发上传，速度提升显著',
         color: 'text-green-400',
       },
-      improvement: '3倍提升',
+      improvement: '10.8倍提升',
       icon: <Zap className="w-6 h-6" />,
     },
     {
-      id: 'reliability',
-      title: '网络容错',
+      id: 'medium_file',
+      title: '5G文件上传',
       traditional: {
-        value: 30,
-        unit: '% 成功率',
+        value: 'N/A',
+        unit: '阿里云OSS限制',
+        description: '单文件最大5G，无法上传更大文件',
+        color: 'text-red-400',
+      },
+      yunxia: {
+        value: 5,
+        unit: '秒',
+        description: '分片技术突破文件大小限制',
+        color: 'text-green-400',
+      },
+      improvement: '无限制',
+      icon: <TrendingUp className="w-6 h-6" />,
+    },
+    {
+      id: 'web_limit',
+      title: '网页版限制',
+      traditional: {
+        value: 4,
+        unit: 'GB (百度网盘网页版)',
+        description: '网页版最大支持4G文件上传',
+        color: 'text-red-400',
+      },
+      yunxia: {
+        value: '无限制',
+        unit: '理论上无限大',
+        description: '分片技术突破浏览器文件限制',
+        color: 'text-green-400',
+      },
+      improvement: '突破限制',
+      icon: <CheckCircle className="w-6 h-6" />,
+    },
+    {
+      id: 'resume',
+      title: '断点续传',
+      traditional: {
+        value: '不支持',
+        unit: '夸克网页版',
         description: '网络中断需重新上传',
         color: 'text-red-400',
       },
       yunxia: {
-        value: 98,
-        unit: '% 成功率',
-        description: '断点续传，错误自动恢复',
+        value: '完整支持',
+        unit: '智能恢复',
+        description: '断网自动恢复，已上传分片保留',
         color: 'text-green-400',
       },
-      improvement: '3.3倍提升',
-      icon: <CheckCircle className="w-6 h-6" />,
-    },
-    {
-      id: 'duplication',
-      title: '重复文件处理',
-      traditional: {
-        value: 60,
-        unit: '秒',
-        description: '每次都需要完整上传',
-        color: 'text-red-400',
-      },
-      yunxia: {
-        value: 0.5,
-        unit: '秒',
-        description: 'MD5校验，瞬间秒传',
-        color: 'text-green-400',
-      },
-      improvement: '120倍提升',
-      icon: <TrendingUp className="w-6 h-6" />,
-    },
-    {
-      id: 'experience',
-      title: '用户体验',
-      traditional: {
-        value: 60,
-        unit: '% 满意度',
-        description: 'UI阻塞，响应缓慢',
-        color: 'text-red-400',
-      },
-      yunxia: {
-        value: 95,
-        unit: '% 满意度',
-        description: 'WebWorker后台处理，流畅响应',
-        color: 'text-green-400',
-      },
-      improvement: '1.6倍提升',
+      improvement: '体验提升',
       icon: <Clock className="w-6 h-6" />,
     },
   ];
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const newValues: Record<string, number> = {};
+      const newValues: Record<string, number | string> = {};
       metrics.forEach(metric => {
         newValues[`traditional-${metric.id}`] = metric.traditional.value;
         newValues[`yunxia-${metric.id}`] = metric.yunxia.value;
@@ -189,26 +189,26 @@ const PerformanceComparison: React.FC = () => {
       <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="text-center p-6 bg-gradient-to-br from-blue-900/30 to-blue-800/20 rounded-xl border border-blue-500/20">
           <Zap className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-          <h4 className="text-white font-bold text-lg mb-2">3倍上传速度</h4>
-          <p className="text-blue-300 text-sm">并发分片上传技术</p>
+          <h4 className="text-white font-bold text-lg mb-2">10.8倍速度提升</h4>
+          <p className="text-blue-300 text-sm">10G文件：2min20s → 13s</p>
         </div>
 
         <div className="text-center p-6 bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-xl border border-green-500/20">
           <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-          <h4 className="text-white font-bold text-lg mb-2">98% 成功率</h4>
-          <p className="text-green-300 text-sm">断点续传容错机制</p>
+          <h4 className="text-white font-bold text-lg mb-2">突破文件限制</h4>
+          <p className="text-green-300 text-sm">无文件大小限制</p>
         </div>
 
         <div className="text-center p-6 bg-gradient-to-br from-purple-900/30 to-purple-800/20 rounded-xl border border-purple-500/20">
           <TrendingUp className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-          <h4 className="text-white font-bold text-lg mb-2">120倍秒传</h4>
-          <p className="text-purple-300 text-sm">智能重复文件检测</p>
+          <h4 className="text-white font-bold text-lg mb-2">领先网页体验</h4>
+          <p className="text-purple-300 text-sm">超越传统网盘限制</p>
         </div>
 
         <div className="text-center p-6 bg-gradient-to-br from-orange-900/30 to-orange-800/20 rounded-xl border border-orange-500/20">
           <Clock className="w-12 h-12 text-orange-400 mx-auto mb-3" />
-          <h4 className="text-white font-bold text-lg mb-2">流畅体验</h4>
-          <p className="text-orange-300 text-sm">WebWorker 后台处理</p>
+          <h4 className="text-white font-bold text-lg mb-2">完整断点续传</h4>
+          <p className="text-orange-300 text-sm">智能恢复机制</p>
         </div>
       </div>
     </div>

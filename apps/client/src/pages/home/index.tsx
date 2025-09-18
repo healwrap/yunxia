@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import AnimatedSection from '@/components/AnimatedSection';
-import Silk from '@/components/Silk';
+// import Silk from '@/components/Silk';
 import TextType from '@/components/TextType';
 import CodeShowcase from '@/components/ui/code-showcase';
 import DevelopmentHighlights from '@/components/ui/development-highlights';
@@ -78,7 +78,7 @@ export default function HomePage() {
             {
               key: 'github',
               label: (
-                <div className="flex items-center space-x-1">
+                <div className="inline-flex items-center space-x-1">
                   <Github className="w-4 h-4" />
                   <span>开源</span>
                 </div>
@@ -142,9 +142,9 @@ export default function HomePage() {
                 onClick: () => navigate('/bench'),
               }}
               stats={[
-                { value: '99.9%', label: '服务可用性' },
                 { value: '10GB', label: '免费存储空间' },
-                { value: '256位', label: 'AES加密保护' },
+                { value: '不限速', label: '上传/下载速度' },
+                { value: '体验好', label: '使用最新技术' },
               ]}
             />
           </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
         {/* CTA Section */}
         <section className="relative py-24 px-4 bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-blue-900/20">
           <div className="absolute inset-0">
-            <Silk speed={2} scale={0.8} color="#8b5cf6" noiseIntensity={0.5} rotation={45} />
+            {/* <Silk speed={2} scale={0.8} color="#8b5cf6" noiseIntensity={0.5} rotation={45} /> */}
           </div>
           <div className="relative z-10 max-w-4xl mx-auto text-center">
             <AnimatedSection direction="up" delay={200}>

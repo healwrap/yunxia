@@ -125,65 +125,71 @@ export function GalaxyNavbar({
       ref={navbarRef}
       className="fixed top-0 left-0 right-0 w-full z-20"
       style={{
-        backgroundColor: 'rgba(13, 13, 24, 0.3)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
         borderRadius: '0 0 15px 15px',
       }}
     >
-      <div className="container mx-auto px-4 py-4 md:px-6 lg:px-8 flex items-center justify-between">
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          {logo || defaultLogo}
+      <div
+        className="w-full"
+        style={{
+          backgroundColor: 'rgba(13, 13, 24, 0.3)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
+        <div className="container mx-auto px-4 py-4 md:px-6 lg:px-8 flex items-center justify-between">
+          <div className="flex items-center space-x-6 lg:space-x-8">
+            {logo || defaultLogo}
 
-          <div className="hidden lg:flex items-center space-x-6 text-white">
-            {items.map((item, index) => {
-              const itemKey =
-                item.key || (typeof item.label === 'string' ? item.label : `item-${index}`);
-              return (
-                <div
-                  key={index}
-                  className="relative group"
-                  onMouseEnter={() => handleMouseEnterNavItem(itemKey)}
-                  onMouseLeave={handleMouseLeaveNavItem}
-                >
-                  <a
-                    href={item.href}
-                    className={navLinkClass(itemKey, 'flex items-center')}
-                    target={item.external ? '_blank' : undefined}
-                    rel={item.external ? 'noopener noreferrer' : undefined}
-                    onClick={e => !item.external && handleAnchorClick(item.href, e)}
+            <div className="hidden lg:flex items-center space-x-6 text-white">
+              {items.map((item, index) => {
+                const itemKey =
+                  item.key || (typeof item.label === 'string' ? item.label : `item-${index}`);
+                return (
+                  <div
+                    key={index}
+                    className="relative group"
+                    onMouseEnter={() => handleMouseEnterNavItem(itemKey)}
+                    onMouseLeave={handleMouseLeaveNavItem}
                   >
-                    {item.label}
-                  </a>
-                </div>
-              );
-            })}
+                    <a
+                      href={item.href}
+                      className={navLinkClass(itemKey, 'flex items-center')}
+                      target={item.external ? '_blank' : undefined}
+                      rel={item.external ? 'noopener noreferrer' : undefined}
+                      onClick={e => !item.external && handleAnchorClick(item.href, e)}
+                    >
+                      {item.label}
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-4 md:space-x-6">
-          {secondaryCtaText && (
+          <div className="flex items-center space-x-4 md:space-x-6">
+            {secondaryCtaText && (
+              <button
+                onClick={onSecondaryCtaClick}
+                className="hidden sm:block text-gray-300 hover:text-white text-sm"
+              >
+                {secondaryCtaText}
+              </button>
+            )}
             <button
-              onClick={onSecondaryCtaClick}
-              className="hidden sm:block text-gray-300 hover:text-white text-sm"
+              onClick={onCtaClick}
+              className="bg-[#8200DB29] hover:bg-black/50 text-white font-semibold py-2 px-5 rounded-full text-sm md:text-base border border-[#322D36]"
+              style={{ backdropFilter: 'blur(8px)' }}
             >
-              {secondaryCtaText}
+              {ctaText}
             </button>
-          )}
-          <button
-            onClick={onCtaClick}
-            className="bg-[#8200DB29] hover:bg-black/50 text-white font-semibold py-2 px-5 rounded-full text-sm md:text-base border border-[#322D36]"
-            style={{ backdropFilter: 'blur(8px)' }}
-          >
-            {ctaText}
-          </button>
-          <button
-            className="lg:hidden text-white p-2"
-            onClick={toggleMobileMenu}
-            aria-label="Toggle mobile menu"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+            <button
+              className="lg:hidden text-white p-2"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -198,25 +204,28 @@ export function GalaxyNavbar({
           WebkitBackdropFilter: 'blur(12px)',
         }}
       >
-        <div className="px-4 py-6 flex flex-col space-y-4">
+        <div className="py-6 flex flex-col">
           {items.map((item, index) => {
             return (
-              <div key={index} className="relative text-white">
-                <a
-                  href={item.href}
-                  className="text-gray-300 hover:text-gray-100 text-sm py-2 transition duration-150"
-                  onClick={e => {
-                    if (!item.external) {
-                      handleAnchorClick(item.href, e);
-                    }
-                    closeMobileMenu();
-                  }}
-                  target={item.external ? '_blank' : undefined}
-                  rel={item.external ? 'noopener noreferrer' : undefined}
-                >
-                  {item.label}
-                </a>
-              </div>
+              <a
+                key={index}
+                href={item.href}
+                className="block w-full text-center py-4 px-6
+                         text-gray-300 hover:text-white hover:bg-white/10 
+                         active:bg-white/20 active:scale-95
+                         transition-all duration-200 ease-in-out
+                         "
+                onClick={e => {
+                  if (!item.external) {
+                    handleAnchorClick(item.href, e);
+                  }
+                  closeMobileMenu();
+                }}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+              >
+                <span className="text-base font-medium">{item.label}</span>
+              </a>
             );
           })}
           {secondaryCtaText && (
@@ -225,9 +234,13 @@ export function GalaxyNavbar({
                 onSecondaryCtaClick?.();
                 closeMobileMenu();
               }}
-              className="text-gray-300 hover:text-gray-100 text-sm py-2 transition duration-150"
+              className="w-full text-center py-4 px-6
+                       text-gray-300 hover:text-white hover:bg-white/10 
+                       active:bg-white/20 active:scale-95
+                       transition-all duration-200 ease-in-out
+                       "
             >
-              {secondaryCtaText}
+              <span className="text-lg font-medium">{secondaryCtaText}</span>
             </button>
           )}
         </div>
